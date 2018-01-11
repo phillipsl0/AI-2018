@@ -1,1 +1,6 @@
-Please test your code and provide a README.txt with instructions on how to run your code. You will lose points if your code fails to run.
+*HeatMiser.py*
+
+To run our code:
+
+1. In terminal, go to the directory with HeatMiser.py
+2. Run the program by entering (without the quotation marks): "python HeatMiser.py"

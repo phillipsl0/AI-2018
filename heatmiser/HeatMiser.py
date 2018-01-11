@@ -247,7 +247,7 @@ def main():
         totalHumidityDeviation += heatMiser.getHumidityStandardDeviation()
 
     # final breakdown after 100 trials
-    print("The HeatMiser visited an average of " + str(int(totalVisits/100)) + " rooms per trial,")
+    print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
     print("ending, on average, with a final temperature " + str("%.2f" % (totalTemperatureDeviation/100)) +
           "x the standard deviation,")
     print("and a final humidity " + str("%.2f" % (totalHumidityDeviation/100)) + "x the standard deviation,")
