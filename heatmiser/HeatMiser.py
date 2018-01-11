@@ -19,7 +19,7 @@ class Room:
         return self.humidity
 
 
-#
+# Floor class that generates rooms and sets average humidity and temperature
 class Floor:
     def __init__(self):
         self.rooms = []
@@ -27,19 +27,30 @@ class Floor:
         self.avgTemp = self.avgHumidity = 0.0
         print("Starting room states:")
 
+        # Open created text file to append output
+        f = open("heatmiser_trial_output", "a")
+        f.write("Starting room states: \n")
+
         # Generates 12 random rooms in the floor
         for i in range(12):
-            room = Room(random.uniform(65.0, 75.0), random.uniform(45.0, 55.0))
             # Python random for temperature
             # which cannot exceed the range of 65-75 degrees or 45-55% humidity
+            room = Room(random.uniform(65.0, 75.0), random.uniform(45.0, 55.0))
             self.totalHumidity += room.getHumidity()
             self.totalTemp += room.getTemperature()
+            
+            # Print current state of room as they're generated
             print("Room " + str(i+1) + ": " + str("%.1f" % room.getTemperature()) + "°F & " +
                   str("%.1f" %room.getHumidity()) + "%")
+
+            # Add current state of room to text file
+            f.write("Room " + str(i+1) + ": " + str("%.1f" % room.getTemperature()) + "°F & " +
+                  str("%.1f" %room.getHumidity()) + "%" + "\n")
 
             self.rooms.append(room)
 
         print("")
+        f.close() # Close file
         self.calculateAverageTemp()
         self.calculateAverageHumidity()
 
@@ -76,7 +87,7 @@ class Floor:
         return self.avgHumidity
 
 
-#
+# HeatMiser class that adjusts humidity and temperature to comfortable levels
 class HeatMiser:
     def __init__(self, floor, trial):
         self.floor = floor
@@ -107,6 +118,7 @@ class HeatMiser:
         else:
             return (self.floor.getAverageHumidity() - 47)/1.75
 
+    # Checks states of room humidity and raises or decreases accordingly
     def updateHumidity(self, currHumidity, roomIndex, currRoom):
         # Decide to either increase or decrease humidity
         if self.raiseHumidity:
@@ -119,10 +131,12 @@ class HeatMiser:
         # Have floor update room
         self.floor.setRoomHumidity(roomIndex, currHumidity)
 
+        # Print updated state of room's humidity
         print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currHumidity) +
               "% humidity, the floor average becomes " + str("%.1f" % self.floor.getAverageHumidity()) + "%.")
         print("This is " + str("%.2f" % self.getHumidityStandardDeviation()) + "x the standard deviation of 1.75")
 
+    # Checks states of room temperature and raises or decreases accordingly
     def updateTemperature(self, currTemp, roomIndex, currRoom):
         # Decide to either increase or decrease humidity
         if self.raiseTemp:
@@ -135,16 +149,25 @@ class HeatMiser:
         # Have floor update room
         self.floor.setRoomTemperature(roomIndex, currTemp)
 
+        # Print updated state of room's temperature
         print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currTemp) + "°F, the floor average becomes " +
               str("%.1f" % self.floor.getAverageTemp()) + "°F.")
         print("This is " + str("%.2f" % self.getTempStandardDeviation()) + "x the standard deviation of 1.5")
 
+    # Print final stats of floor
     def getFinalStats(self):
         print("After " + str(int(self.visits)) + " room visits:")
 
+        # Open created text file to append output
+        f = open("heatmiser_trial_output", "a")
+        f.write("Final room states: \n")
+
+        # Print + output final room states
         for i in range(12):
             print("Room " + str(i+1) + " -> " + str("%.1f" % self.floor.rooms[i].getTemperature()) + "°F & " +
                  str("%.1f" % self.floor.rooms[i].getHumidity()) + "%")
+            f.write("Room " + str(i+1) + " -> " + str("%.1f" % self.floor.rooms[i].getTemperature()) + "°F & " +
+                 str("%.1f" % self.floor.rooms[i].getHumidity()) + "%" + "\n")
 
         print("")
 
@@ -154,12 +177,15 @@ class HeatMiser:
               str("%.2f" % self.getHumidityStandardDeviation()) + "x std. dev)")
 
         print("<----- END OF TRIAL " + str(self.trial) + " ----->")
+        f.write("<----- END OF TRIAL " + str(self.trial) + " -----> \n")
         print("")
+        f.close() # close file
 
     def getVisits(self):
         return self.visits
 
     def chooseAction(self, currRoom, roomIndex, currHumidity, currTemp):
+        # Randomized whether to check humidity or temperature first
         action = random.randrange(0,2)
 
         if action == 0:
@@ -172,6 +198,7 @@ class HeatMiser:
                 print("HeatMiser has chosen to do nothing in this room.")
 
         else:
+            # Change temperature if not comfortable
             if self.canChangeTemperature(currTemp):
                 self.updateTemperature(currTemp, roomIndex, currRoom)
             elif self.canChangeHumidity(currHumidity):
@@ -210,6 +237,7 @@ class HeatMiser:
         else:
             self.raiseTemp = False
 
+        # Run on the rooms of the floor
         while not (self.floorHumidityStable() and self.floorTemperatureStable()):
             print("HeatMiser is in room " + str(roomIndex+1))
 
@@ -236,6 +264,10 @@ class HeatMiser:
 def main():
     totalVisits = 0
     totalTemperatureDeviation = totalHumidityDeviation = 0.0
+
+    # Create text file to write to. Overwrites previous trial
+    f = open("heatmiser_trial_output", "w")
+    f.close()
 
     for i in range(100):
         floor = Floor()
