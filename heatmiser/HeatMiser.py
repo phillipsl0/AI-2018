@@ -128,6 +128,18 @@ class HeatMiser:
             return True
         return False
 
+    # Check if floor humidity standard deviation acceptable <= 1.75
+    def floorStandardDeviationHumidityStable(self):
+        if (self.floor.getStandardDeviationHumidity() <= 1.75):
+            return True
+        return False
+
+    # Check if floor temperature standard deviation at acceptable <= 1.5
+    def floorStandardDeviationTemperatureStable(self):
+        if (self.floor.getStandardDeviationTemp() <= 1.5):
+            return True
+        return False
+
     # def getTempStandardDeviation(self):
     #     if self.raiseTemp:
     #         return (72-self.floor.getAverageTemp())/1.5
