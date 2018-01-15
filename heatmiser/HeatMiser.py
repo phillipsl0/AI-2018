@@ -246,8 +246,16 @@ class HeatMiser:
     # Determines if humidity of room is within accepted range of 45 - 55%, deviations, and average
     def canChangeHumidity(self, currHumidity):
         # Don't touch room if at ideal average humidity
-        if ((round(currHumidity, 2) >= 47.0) and (round(currHumidity,2) <= 47.9)):
+        if ((round(currHumidity, 2) >= 47.0) and (round(currHumidity, 2) <= 47.9)):
             return False
+        # CHANGED
+        # Determine if needs to be increased
+        elif ((round(currHumidity, 2) < 45.25)):
+            self.raiseHumidity = True
+        # Determine if humidity needs to be decreased
+        elif (round(currHumidity, 2 > 48.75)):
+            self.raiseHumidity = False
+
         if not self.floorHumidityStable():
             # Checks lower bound
             if not self.raiseHumidity and (currHumidity - 1) >= 45:
@@ -262,6 +270,14 @@ class HeatMiser:
         # Don't touch room if at ideal average humidity
         if ((round(currTemp, 2) >= 72.0) and (round(currTemp,2) <= 72.9)):
             return False
+        # Determine if temp needs to be increased
+        elif (round(currTemp, 2) < 70.5):
+            self.raiseTemp = True
+        # Determine if temp needs to be decreased
+        elif (round(currTemp, 2) > 73.5):
+            self.raiseTemp = False
+
+
         # Checks if temperature needs to be increased
         if not self.floorTempStable():
             # Checks lower bound
@@ -284,25 +300,16 @@ class HeatMiser:
         roomIndex = 0
 
         # Determine whether to initially increase or decrease temp and or humidity
-        # CHANGED
-        # if self.floor.getAverageHumidity() < 45.25:
+        # CHANGEDs
+        # if self.floor.getAverageHumidity() < 47:
         #     self.raiseHumidity = True
         # else:
         #     self.raiseHumidity = False
 
-        # if self.floor.getAverageTemp() < 70.5:
+        # if self.floor.getAverageTemp() < 72:
         #     self.raiseTemp = True
         # else:
         #     self.raiseTemp = False
-        if self.floor.getAverageHumidity() < 47:
-            self.raiseHumidity = True
-        else:
-            self.raiseHumidity = False
-
-        if self.floor.getAverageTemp() < 72:
-            self.raiseTemp = True
-        else:
-            self.raiseTemp = False
 
         # Run on the rooms of the floor
         while not (self.floorHumidityStable() and self.floorTempStable()):
