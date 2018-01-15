@@ -140,19 +140,6 @@ class HeatMiser:
             return True
         return False
 
-    # def getTempStandardDeviation(self):
-    #     if self.raiseTemp:
-    #         return (72-self.floor.getAverageTemp())/1.5
-    #     else:
-    #         return (self.floor.getAverageTemp()-72)/1.5
-
-    # def getHumidityStandardDeviation(self):
-    #     if self.raiseHumidity:
-    #         return (self.floor.getAverageHumidity() - 47)/ 1.75
-
-    #     else:
-    #         return (self.floor.getAverageHumidity() - 47)/1.75
-
     # Checks states of room humidity and raises or decreases accordingly. Updates standard deviation.
     def updateHumidity(self, currHumidity, roomIndex, currRoom):
         # Decide to either increase or decrease humidity
@@ -256,8 +243,11 @@ class HeatMiser:
             else:
                 print("HeatMiser has chosen to do nothing in this room.")
 
-    # Determines if humidity of room is within accepted rnge of 45 - 55%
+    # Determines if humidity of room is within accepted range of 45 - 55%, deviations, and average
     def canChangeHumidity(self, currHumidity):
+        # Don't touch room if at ideal average humidity
+        if ((round(currHumidity, 2) >= 72.0) and (round(currHumidity,2) <= 79.0)):
+            return False
         if not self.floorHumidityStable():
             # Checks lower bound
             if not self.raiseHumidity and (currHumidity - 1) >= 45:
