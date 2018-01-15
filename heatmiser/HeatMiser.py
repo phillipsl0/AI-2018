@@ -1,5 +1,5 @@
-import random
-import math
+from random import uniform, randrange
+from math import sqrt
 
 # Room class that sets and returns its humidity and temp
 class Room:
@@ -37,7 +37,7 @@ class Floor:
             # Python random for temp
             # which cannot exceed the range of 65-75 degrees or 45-55% humidity
             
-            room = Room(random.uniform(65.0, 75.0), random.uniform(45.0, 55.0))
+            room = Room(uniform(65.0, 75.0), uniform(45.0, 55.0))
         
             self.totalHumidity += room.getHumidity()
             self.totalTemp += room.getTemp()
@@ -98,8 +98,8 @@ class Floor:
             xTemp += ((room.getTemp() - self.avgTemp)**2)
             xHumidity += ((room.getHumidity() - self.avgHumidity)**2)
 
-        self.stdTemp = math.sqrt(xTemp / 12)
-        self.stdHumidity = math.sqrt(xHumidity / 12)
+        self.stdTemp = sqrt(xTemp / 12)
+        self.stdHumidity = sqrt(xHumidity / 12)
 
     def getStandardDeviationTemp(self):
         return self.stdTemp
@@ -224,7 +224,7 @@ class HeatMiser:
 
     def chooseAction(self, currRoom, roomIndex, currHumidity, currTemp):
         # Randomized whether to check humidity or temp first
-        action = random.randrange(0,2)
+        action = randrange(0,2)
 
         # Looks at humidity first
         if action == 0:
