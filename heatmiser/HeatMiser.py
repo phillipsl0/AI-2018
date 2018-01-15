@@ -366,9 +366,8 @@ def main():
     #       "x the standard deviation,")
     # print("and a final humidity " + str("%.2f" % (totalHumidityDeviation/100)) + "x the standard deviation,")
     print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
-    print("ending, on average, with a final temperature standard deviation of " + str("%.2f" % (totalTempDeviation/100)) +
-          "the standard deviation,")
-    print("and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
+    print(" ending, on average, with a final temperature standard deviation of " + str("%.2f" % (totalTempDeviation/100)) +
+          " the standard deviation and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
 
 
 if __name__ == '__main__':
