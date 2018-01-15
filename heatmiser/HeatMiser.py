@@ -173,7 +173,7 @@ class HeatMiser:
               "% humidity, the floor average becomes " + str("%.1f" % self.floor.getAverageHumidity()) +
               "% with an average standard deviation of " + str("%.1f" % self.floor.getStandardDeviationHumidity() + "."))
         # print("This is " + str("%.2f" % self.getHumidityStandardDeviation()) + "x the standard deviation of 1.75")
-        print("This is room is " + str("%.2f" % (self.floor.getAverageHumidity() - currHumidity)) + " deviations away from the average humidity.")
+        print("This room is " + str("%.2f" % (self.floor.getAverageHumidity() - currHumidity)) + " deviations away from the average humidity.")
 
 
     # Checks states of room temp and raises or decreases accordingly. Updates standard deviation.
@@ -367,7 +367,7 @@ def main():
     # print("and a final humidity " + str("%.2f" % (totalHumidityDeviation/100)) + "x the standard deviation,")
     print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
     print(" ending, on average, with a final temperature standard deviation of " + str("%.2f" % (totalTempDeviation/100)) +
-          " the standard deviation and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
+          " and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
 
 
 if __name__ == '__main__':
