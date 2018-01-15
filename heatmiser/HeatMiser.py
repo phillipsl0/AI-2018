@@ -118,13 +118,13 @@ class HeatMiser:
 
     # Check if floor humidity at acceptable average of 47
     def floorHumidityStable(self):
-        if (self.floor.getAverageHumidity() == 47.0) and (self.floor.getAverageHumidity() <= 47.9):
+        if (round(self.floor.getAverageHumidity(), 2) >= 47.0) and (round(self.floor.getAverageHumidity(), 2) <= 47.9):
             return True
         return False
 
     # Check if floor temperature at acceptable temperature of 72
     def floorTempStable(self):
-        if (self.floor.getAverageTemp() == 72.0) and (self.floor.getAverageTemp() <= 72.9):
+        if (round(self.floor.getAverageTemp(), 2) >= 72.0) and (round(self.floor.getAverageTemp(), 2) <= 72.9):
             return True
         return False
 
