@@ -246,7 +246,7 @@ class HeatMiser:
     # Determines if humidity of room is within accepted range of 45 - 55%, deviations, and average
     def canChangeHumidity(self, currHumidity):
         # Don't touch room if at ideal average humidity
-        if ((round(currHumidity, 2) >= 72.0) and (round(currHumidity,2) <= 79.0)):
+        if ((round(currHumidity, 2) >= 47.0) and (round(currHumidity,2) <= 47.9)):
             return False
         if not self.floorHumidityStable():
             # Checks lower bound
@@ -259,7 +259,10 @@ class HeatMiser:
 
     # Determines if temperature of room is within accepted range of 65 - 75 F
     def canChangeTemp(self, currTemp):
-        # Checks floor average 
+        # Don't touch room if at ideal average humidity
+        if ((round(currTemp, 2) >= 72.0) and (round(currHumidity,2) <= 72.9)):
+            return False
+        # Checks if temperature needs to be increased
         if not self.floorTempStable():
             # Checks lower bound
             if not self.raiseTemp and (currTemp - 1) >= 65:
