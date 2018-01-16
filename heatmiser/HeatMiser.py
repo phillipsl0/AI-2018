@@ -89,7 +89,7 @@ class Floor:
     def getAverageHumidity(self):
         return self.avgHumidity
 
-    # Calculates standard deviation for both humidity and temperature of floor
+    # Calculates standard deviation for both humidity and temp of floor
     def calculateStandardDeviation(self):
         xTemp = 0
         xHumidity = 0
@@ -122,7 +122,7 @@ class HeatMiser:
             return True
         return False
 
-    # Check if floor temperature at acceptable temperature of 72
+    # Check if floor temp at acceptable temp of 72
     def floorTempStable(self):
         if (round(self.floor.getAverageTemp(), 2) >= 72.0) and (round(self.floor.getAverageTemp(), 2) <= 72.9):
             return True
@@ -134,8 +134,8 @@ class HeatMiser:
             return True
         return False
 
-    # Check if floor temperature standard deviation at acceptable <= 1.5
-    def floorStandardDeviationTemperatureStable(self):
+    # Check if floor temp standard deviation at acceptable <= 1.5
+    def floorStandardDeviationTempStable(self):
         if (self.floor.getStandardDeviationTemp() <= 1.5):
             return True
         return False
@@ -183,7 +183,7 @@ class HeatMiser:
               str("%.1f" % self.floor.getAverageTemp()) + "°F with an average standard deviation of " +
               str("%.1f" % self.floor.getStandardDeviationTemp() + "."))
         # print("This is " + str("%.2f" % self.getTempStandardDeviation()) + "x the standard deviation of 1.5")
-        print("This is room is " + str("%.2f" % (self.floor.getAverageTemp() - currTemp)) + " deviations away from the average temperature.")
+        print("This is room is " + str("%.2f" % (self.floor.getAverageTemp() - currTemp)) + " deviations away from the average temp.")
 
         
     # Print final stats of floor
@@ -209,7 +209,7 @@ class HeatMiser:
         # print("Average floor humidity    -> " + str("%.2f" % self.floor.getAverageHumidity()) + "% (" +
         #       str("%.2f" % self.getHumidityStandardDeviation()) + "x std. dev)")
         print("Average floor temp -> " + str("%.2f" % self.floor.getAverageTemp()) + "°F (" +
-                str("%.2f" % self.floor.getStandardDeviationTemp()) + " standard deviations)")
+                str("%.1f" % self.floor.getStandardDeviationTemp()) + " standard deviations)")
         print("Average floor humidity    -> " + str("%.2f" % self.floor.getAverageHumidity()) + "% (" +
                 str("%.2f" % self.floor.getStandardDeviationHumidity()) + " standard deviations)")
 
@@ -234,7 +234,7 @@ class HeatMiser:
             else:
                 print("HeatMiser has chosen to do nothing in this room.")
 
-        # Looks at temperature first
+        # Looks at temp first
         else:
             if self.canChangeTemp(currTemp):
                 self.updateTemp(currTemp, roomIndex, currRoom)
@@ -243,6 +243,7 @@ class HeatMiser:
             else:
                 print("HeatMiser has chosen to do nothing in this room.")
 
+
     # Determines if humidity of room is within accepted range of 45 - 55%, deviations, and average
     def canChangeHumidity(self, currHumidity):
         # Don't touch room if at ideal average humidity
@@ -250,12 +251,13 @@ class HeatMiser:
             return False
         # CHANGED
         # Determine if needs to be increased
-        elif ((round(currHumidity, 2) < 45.25)):
+        elif ((round(currHumidity, 2) < 47.0)):
             self.raiseHumidity = True
         # Determine if humidity needs to be decreased
-        elif (round(currHumidity, 2 > 48.75)):
+        elif (round(currHumidity, 2 > 47.9)):
             self.raiseHumidity = False
 
+        # Checks if average is acceptable
         if not self.floorHumidityStable():
             # Checks lower bound
             if not self.raiseHumidity and (currHumidity - 1) >= 45:
@@ -263,22 +265,26 @@ class HeatMiser:
             # Checks upper bound
             elif self.raiseHumidity and (currHumidity + 1) <= 55:
                 return True
+        # Checks if standard deviation is acceptable
+        elif not self.floorStandardDeviationHumidityStable():
+            return True
         return False
 
-    # Determines if temperature of room is within accepted range of 65 - 75 F
+
+    # Determines if temp of room is within accepted range of 65 - 75 F
     def canChangeTemp(self, currTemp):
         # Don't touch room if at ideal average humidity
         if ((round(currTemp, 2) >= 72.0) and (round(currTemp,2) <= 72.9)):
             return False
         # Determine if temp needs to be increased
-        elif (round(currTemp, 2) < 70.5):
+        elif (round(currTemp, 2) < 72.0):
             self.raiseTemp = True
         # Determine if temp needs to be decreased
-        elif (round(currTemp, 2) > 73.5):
+        elif (round(currTemp, 2) > 72.9):
             self.raiseTemp = False
 
 
-        # Checks if temperature needs to be increased
+        # Checks if average is acceptable
         if not self.floorTempStable():
             # Checks lower bound
             if not self.raiseTemp and (currTemp - 1) >= 65:
@@ -286,6 +292,10 @@ class HeatMiser:
             # Checks upper bound
             elif self.raiseTemp and (currTemp + 1) <= 75:
                 return True
+        # Checks if standard deviation is acceptable
+        elif not self.floorStandardDeviationTempStable():
+            return True
+
         return False
 
     # Checks if room has a stable standard deviation or not
@@ -323,7 +333,7 @@ class HeatMiser:
                   str("%.1f" % currHumidity) + "% humidity")
 
             self.chooseAction(currRoom, roomIndex, currHumidity, currTemp)
-            print("Floor averages: temperature: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
+            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
 
             if roomIndex < 11:
                 roomIndex += 1
@@ -366,7 +376,7 @@ def main():
     #       "x the standard deviation,")
     # print("and a final humidity " + str("%.2f" % (totalHumidityDeviation/100)) + "x the standard deviation,")
     print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
-    print(" ending, on average, with a final temperature standard deviation of " + str("%.2f" % (totalTempDeviation/100)) +
+    print(" ending, on average, with a final temp standard deviation of " + str("%.1f" % (totalTempDeviation/100)) +
           " and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
 
 
