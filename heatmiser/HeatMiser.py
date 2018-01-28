@@ -43,12 +43,12 @@ class Floor:
             self.totalTemp += room.getTemp()
             
             # Print current state of room as they're generated
-            print("Room " + str(i+1) + ": " + str("%.1f" % room.getTemp()) + "°F & " +
-                  str("%.1f" %room.getHumidity()) + "%")
+            print("Room " + str(i+1) + ": " + str("%.1f" % room.getTemp()) + "°F & "
+                  + str("%.1f" %room.getHumidity()) + "%")
 
             # Add current state of room to text file
-            f.write("Room " + str(i+1) + ": " + str("%.1f" % room.getTemp()) + "°F & " +
-                  str("%.1f" %room.getHumidity()) + "%" + "\n")
+            f.write("Room " + str(i+1) + ": " + str("%.1f" % room.getTemp()) + "°F & "
+                  + str("%.1f" %room.getHumidity()) + "%" + "\n")
 
             self.rooms.append(room)
 
@@ -156,11 +156,12 @@ class HeatMiser:
 
         # Print updated state of room's humidity
         # CHANGED
-        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currHumidity) +
-              "% humidity, the floor average becomes " + str("%.1f" % self.floor.getAverageHumidity()) +
-              "% with an average standard deviation of " + str("%.1f" % self.floor.getStandardDeviationHumidity() + "."))
+        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currHumidity)
+              + "% humidity, the floor average becomes " + str("%.1f" % self.floor.getAverageHumidity())
+              + "% with an average standard deviation of " + str("%.1f" % self.floor.getStandardDeviationHumidity() + "."))
         # print("This is " + str("%.2f" % self.getHumidityStandardDeviation()) + "x the standard deviation of 1.75")
-        print("This room is " + str("%.2f" % (self.floor.getAverageHumidity() - currHumidity)) + " deviations away from the average humidity.")
+        print("This room is " + str("%.2f" % (self.floor.getAverageHumidity() - currHumidity))
+              + " deviations away from the average humidity.")
 
 
     # Checks states of room temp and raises or decreases accordingly. Updates standard deviation.
@@ -179,11 +180,12 @@ class HeatMiser:
 
         # Print updated state of room's temp
         # CHANGED
-        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currTemp) + "°F, the floor average becomes " +
-              str("%.1f" % self.floor.getAverageTemp()) + "°F with an average standard deviation of " +
-              str("%.1f" % self.floor.getStandardDeviationTemp() + "."))
+        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currTemp) + "°F, the floor average becomes "
+              + str("%.1f" % self.floor.getAverageTemp()) + "°F with an average standard deviation of "
+              + str("%.1f" % self.floor.getStandardDeviationTemp() + "."))
         # print("This is " + str("%.2f" % self.getTempStandardDeviation()) + "x the standard deviation of 1.5")
-        print("This is room is " + str("%.2f" % (self.floor.getAverageTemp() - currTemp)) + " deviations away from the average temp.")
+        print("This is room is " + str("%.2f" % (self.floor.getAverageTemp() - currTemp))
+              + " deviations away from the average temp.")
 
         
     # Print final stats of floor
@@ -196,10 +198,10 @@ class HeatMiser:
 
         # Print + output final room states
         for i in range(12):
-            print("Room " + str(i+1) + " -> " + str("%.1f" % self.floor.rooms[i].getTemp()) + "°F & " +
-                 str("%.1f" % self.floor.rooms[i].getHumidity()) + "%")
-            f.write("Room " + str(i+1) + " -> " + str("%.1f" % self.floor.rooms[i].getTemp()) + "°F & " +
-                 str("%.1f" % self.floor.rooms[i].getHumidity()) + "%" + "\n")
+            print("Room " + str(i+1) + " -> " + str("%.1f" % self.floor.rooms[i].getTemp()) + "°F & "
+                 + str("%.1f" % self.floor.rooms[i].getHumidity()) + "%")
+            f.write("Room " + str(i+1) + " -> " + str("%.1f" % self.floor.rooms[i].getTemp()) + "°F & "
+                 + str("%.1f" % self.floor.rooms[i].getHumidity()) + "%" + "\n")
 
         print("")
 
@@ -208,10 +210,10 @@ class HeatMiser:
         #       str("%.2f" % self.getTempStandardDeviation()) + "x std. dev)")
         # print("Average floor humidity    -> " + str("%.2f" % self.floor.getAverageHumidity()) + "% (" +
         #       str("%.2f" % self.getHumidityStandardDeviation()) + "x std. dev)")
-        print("Average floor temp -> " + str("%.2f" % self.floor.getAverageTemp()) + "°F (" +
-                str("%.1f" % self.floor.getStandardDeviationTemp()) + " standard deviations)")
-        print("Average floor humidity    -> " + str("%.2f" % self.floor.getAverageHumidity()) + "% (" +
-                str("%.2f" % self.floor.getStandardDeviationHumidity()) + " standard deviations)")
+        print("Average floor temp -> " + str("%.2f" % self.floor.getAverageTemp()) + "°F ("
+                + str("%.1f" % self.floor.getStandardDeviationTemp()) + " standard deviations)")
+        print("Average floor humidity    -> " + str("%.2f" % self.floor.getAverageHumidity()) + "% ("
+                + str("%.2f" % self.floor.getStandardDeviationHumidity()) + " standard deviations)")
 
         print("<----- END OF TRIAL " + str(self.trial) + " ----->")
         f.write("<----- END OF TRIAL " + str(self.trial) + " -----> \n")
@@ -329,11 +331,12 @@ class HeatMiser:
             currHumidity = currRoom.getHumidity()
             currTemp = currRoom.getTemp()
 
-            print("Room " + str(roomIndex+1) + " is at " + str("%.1f" % currTemp) + "°F & " +
-                  str("%.1f" % currHumidity) + "% humidity")
+            print("Room " + str(roomIndex+1) + " is at " + str("%.1f" % currTemp) + "°F & "
+                  + str("%.1f" % currHumidity) + "% humidity")
 
             self.chooseAction(currRoom, roomIndex, currHumidity, currTemp)
-            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
+            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity: "
+                  + str("%.1f" % self.floor.getAverageHumidity()))
 
             if roomIndex < 11:
                 roomIndex += 1
@@ -376,8 +379,8 @@ def main():
     #       "x the standard deviation,")
     # print("and a final humidity " + str("%.2f" % (totalHumidityDeviation/100)) + "x the standard deviation,")
     print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
-    print(" ending, on average, with a final temp standard deviation of " + str("%.1f" % (totalTempDeviation/100)) +
-          " and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
+    print(" ending, on average, with a final temp standard deviation of " + str("%.1f" % (totalTempDeviation/100))
+          + " and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
 
 
 if __name__ == '__main__':
