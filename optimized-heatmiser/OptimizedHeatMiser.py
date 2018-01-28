@@ -383,27 +383,26 @@ class OptimizedHeatMiser:
 
 
     # Returns array path to target room using BFS from start index to target index
-    def findPathBFS(self, start, target):
+    def findPathBFS(self, graph, start, target):
         queue = [start] # keep track of rooms to be checked using a queue
         explored = [] # keep track of rooms visited
-        found = False
-        graph = self.floor.getFloorPlan()
 
         # continue until target node found
-        while not found:
-            # pop shallowest node from queue
-            node = queue.pop(0)
-            if node not in explored:
-                explored.append(node)
+        while queue:
+            # Gets first path in the queue
+            path = queue.pop(0)
+            # Get last node in the path
+            node = path[-1]
 
-                # Check if curr node is target
-                if node == target:
-                    found = True
-                # Continue exploring
-                else:
-                    for neighbor in graph[node]:
-                        if neighbor not in explored:
-                            queue.append(neighbor)
+            # Check if at end, if so return path
+            if node == target:
+                return path
+            # Add to explored and continue
+            elif node not in explored:
+                explored.append(node)
+                for neighbor in graph[node]:
+                    if neighbor not in explored:
+                        queue.append(neighbor)
         
         return explored
 
@@ -411,6 +410,7 @@ class OptimizedHeatMiser:
     def baselineRun(self):
         # Initialize HeatMiser at a random room
         currRoomIndex = randrange(0,12)
+        graph = self.floor.getFloorPlan()
 
         # Run on the rooms of the floor
         while not (self.floorHumidityStable() and self.floorTempStable()):
@@ -423,7 +423,7 @@ class OptimizedHeatMiser:
             # Go to room with greatest diff first
             targetRoom = max(maxRoomDiffTemp.getTemp(), maxRoomDiffHumidity.getHumidity())
             # Get path to room with greatest max
-            path = self.findPathBFS(currRoomIndex, targetRoom.getIndex())
+            path = self.findPathBFS(graph, currRoomIndex, targetRoom.getIndex())
 
             # Increment total visits by number of rooms passed
             self.visits += len(path)
