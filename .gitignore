@@ -99,3 +99,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+heatmiser_trial_output
+optimized_heatmiser_trial_output
+optimized-heatmiser.iml
