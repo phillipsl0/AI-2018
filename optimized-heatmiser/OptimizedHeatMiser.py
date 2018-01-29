@@ -32,20 +32,20 @@ class Floor:
         self.totalTemp = self.totalHumidity = 0
         self.avgTemp = self.avgHumidity = self.stdTemp = self.stdHumidity = 0.0
         # Array listing index of adjacent offices of each office
-        self.floorPlan = [
-            [2, 3],
-            [1, 4],
-            [1, 7],
-            [2, 5, 6],
-            [4, 8],
-            [4, 7],
-            [3, 6, 10],
-            [5, 9],
-            [8, 10],
-            [7, 11],
-            [10, 12],
-            [11]
-        ]
+        self.floorPlan = {
+            1: [2, 3],
+            2: [1, 4],
+            3: [1, 7],
+            4: [2, 5, 6],
+            5: [4, 8],
+            6: [4, 7],
+            7: [3, 6, 10],
+            8: [5, 9],
+            9: [8, 10],
+            10: [7, 11],
+            11: [10, 12],
+            12: [11]
+        }
 
 
         # Open created text file to append output
@@ -378,7 +378,7 @@ class OptimizedHeatMiser:
                 
                 explored[node] = True
         
-        return explored
+        return path
 
     # Heatmiser searches for office with largest differrence
     def baselineRun(self):
@@ -405,19 +405,20 @@ class OptimizedHeatMiser:
                 tempFirst = False
 
             # Update room index to target
-            roomIndex = targetRoom.getIndex()
+
             # Get path to room with greatest max
-            path = self.findPathBFS(graph, roomIndex, targetRoom.getIndex())
-            print("HeatMiser detects the max room to be " + str(roomIndex+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
+            path = self.findPathBFS(graph, roomIndex+1, targetRoom.getIndex()+1)
+            print("HeatMiser detects the max room to be " + str(targetRoom.getIndex()+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
                 str("%.1f" % targetRoom.getHumidity()) + "% humidity")
-            print("HeatMiser is going to room " + str(roomIndex+1) + ". The path to room " + str(roomIndex+1) + " is:")
+            print("HeatMiser is going to room " + str(targetRoom.getIndex()+1) + ". The path to room " + str(targetRoom.getIndex()+1) + " is:")
             print(path)
-            self.chooseAction(roomIndex, tempFirst)
+            self.chooseAction(targetRoom.getIndex(), tempFirst)
 
             print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
 
             # Increment total visits by number of rooms passed
             self.visits += len(path)
+            roomIndex = targetRoom.getIndex()
             print("Moving on ----->")
             print("")
 
