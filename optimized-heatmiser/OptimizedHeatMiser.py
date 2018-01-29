@@ -160,17 +160,17 @@ class OptimizedHeatMiser:
             else:
                 print("This shouldn't happen")
 
-            if diff > currMax:
+            if diff > maxDiff:
                 maxDiff = diff
                 maxRoom = r
         return maxRoom
 
     # Return index of room with max differene in temperature
-    def getRoomMaxDiffTemperature(self, floor):
+    def getRoomMaxDiffTemperature(self):
         return self.maxDiff(0)
 
     # Return index of room with max different in humidity
-    def getRoomMaxDiffHumidity(self, floor):
+    def getRoomMaxDiffHumidity(self):
         return self.maxDiff(1)
 
     # Print final stats of floor
@@ -226,71 +226,42 @@ class OptimizedHeatMiser:
             return True
         return False
 
-    # Checks states of room humidity and raises or decreases accordingly. Updates standard deviation.
-    def updateHumidity(self, currHumidity, roomIndex, currRoom):
-        # Decide to either increase or decrease humidity
-        if self.raiseHumidity:
-            print("HeatMiser is raising the humidity of room " + str(roomIndex+1) + " by 1%")
-            currHumidity += 1
-        elif (not self.raiseHumidity):
-            print("HeatMiser is lowering the humidity of room " + str(roomIndex+1) + " by 1%")
-            currHumidity -= 1
-
+    # Sets humidity of room to desired percentage
+    def updateHumidity(self, roomIndex, newHumidity):
+        print("HeatMiser is setting the humidity of room " + str(roomIndex+1) + " to " + str("%.1f" % newHumidity))
+        
         # Have floor update room
-        self.floor.setRoomHumidity(roomIndex, currHumidity)
+        self.floor.setRoomHumidity(roomIndex, newHumidity)
         self.floor.calculateStandardDeviation() # ADDED
 
         # Print updated state of room's humidity
-        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currHumidity) +
-              "% humidity, the floor average becomes " + str("%.1f" % self.floor.getAverageHumidity()) +
+        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % newHumidity) +
+              "% humidity, the floor average humidity becomes " + str("%.1f" % self.floor.getAverageHumidity()) +
               "% with an average standard deviation of " + str("%.1f" % self.floor.getStandardDeviationHumidity() + "."))
-        print("This room is " + str("%.2f" % (self.floor.getAverageHumidity() - currHumidity)) + " deviations away from the average humidity.")
+        print("This room is " + str("%.2f" % (self.floor.getAverageHumidity() - newHumidity)) + " deviations away from the average humidity.")
 
 
-    # Checks states of room temp and raises or decreases accordingly. Updates standard deviation.
-    def updateTemp(self, currTemp, roomIndex, currRoom):
-        # Decide to either increase or decrease humidity
-        if self.raiseTemp:
-            print("HeatMiser is raising the temp of room " + str(roomIndex+1) + " by 1°F")
-            currTemp += 1
-        elif (not self.raiseTemp):
-            print("HeatMiser is lowering the temp of room " + str(roomIndex+1) + " by 1°F")
-            currTemp -= 1
-
+    # Updates temperature of room to desired degree
+    def updateTemp(self, roomIndex, newTemp):
+        print("HeatMiser is setting the temp of room " + str(roomIndex+1) + " to " + str("%.1f" % newTemp))
         # Have floor update room
-        self.floor.setRoomTemp(roomIndex, currTemp)
-        self.floor.calculateStandardDeviation() # ADDED
+        self.floor.setRoomTemp(roomIndex, newTemp)
+        self.floor.calculateStandardDeviation()
 
         # Print updated state of room's temp
-        # CHANGED
-        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % currTemp) + "°F, the floor average becomes " +
+        print("With room " + str(roomIndex+1) + " now at " + str("%.1f" % newTemp) + "°F, the floor average temperature becomes " +
               str("%.1f" % self.floor.getAverageTemp()) + "°F with an average standard deviation of " +
               str("%.1f" % self.floor.getStandardDeviationTemp() + "."))
         # print("This is " + str("%.2f" % self.getTempStandardDeviation()) + "x the standard deviation of 1.5")
-        print("This is room is " + str("%.2f" % (self.floor.getAverageTemp() - currTemp)) + " deviations away from the average temp.")
+        print("Room " + str(roomIndex+1) + " is " + str("%.2f" % (self.floor.getAverageTemp() - newTemp)) + " deviations away from the average temp.")
 
-    def chooseAction(self, currRoom, roomIndex, currHumidity, currTemp):
-        # Randomized whether to check humidity or temp first
-        action = randrange(0,2)
 
-        # Looks at humidity first
-        if action == 0:
-            if self.canChangeHumidity(currHumidity):
-                self.updateHumidity(currHumidity, roomIndex, currRoom)
-            elif self.canChangeTemp(currTemp):
-                self.updateTemp(currTemp, roomIndex, currRoom)
-            else:
-                print("HeatMiser has chosen to do nothing in this room.")
-
-        # Looks at temp first
+    # Set temperature or humidity of room accordingly
+    def chooseAction(self, roomIndex, raiseTemp):
+        if raiseTemp is True:
+            self.updateTemp(roomIndex, 72)
         else:
-            if self.canChangeTemp(currTemp):
-                self.updateTemp(currTemp, roomIndex, currRoom)
-            elif self.canChangeHumidity(currHumidity):
-                self.updateHumidity(currHumidity, roomIndex, currRoom)
-            else:
-                print("HeatMiser has chosen to do nothing in this room.")
-
+            self.updateHumidity(roomIndex, 47)
 
     # Determines if humidity of room is within accepted range of 45 - 55%, deviations, and average
     def canChangeHumidity(self, currHumidity):
@@ -366,7 +337,7 @@ class OptimizedHeatMiser:
             print("Room " + str(roomIndex+1) + " is at " + str("%.1f" % currTemp) + "°F & " +
                   str("%.1f" % currHumidity) + "% humidity")
 
-            self.chooseAction(currRoom, roomIndex, currHumidity, currTemp)
+            self.updateTemp()
             print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
 
             if roomIndex < 11:
@@ -384,8 +355,8 @@ class OptimizedHeatMiser:
 
     # Returns array path to target room using BFS from start index to target index
     def findPathBFS(self, graph, start, target):
-        queue = [start] # keep track of rooms to be checked using a queue
-        explored = [] # keep track of rooms visited
+        queue = [[start]] # keep track of rooms to be checked using a queue
+        explored = {} # keep track of rooms visited
 
         # continue until target node found
         while queue:
@@ -399,17 +370,20 @@ class OptimizedHeatMiser:
                 return path
             # Add to explored and continue
             elif node not in explored:
-                explored.append(node)
+                # Construct a new path
                 for neighbor in graph[node]:
-                    if neighbor not in explored:
-                        queue.append(neighbor)
+                    new_path = list(path)
+                    new_path.append(neighbor)
+                    queue.append(new_path)
+                
+                explored[node] = True
         
         return explored
 
     # Heatmiser searches for office with largest differrence
     def baselineRun(self):
         # Initialize HeatMiser at a random room
-        currRoomIndex = randrange(0,12)
+        roomIndex = randrange(0,12)
         graph = self.floor.getFloorPlan()
 
         # Run on the rooms of the floor
@@ -421,32 +395,29 @@ class OptimizedHeatMiser:
             maxRoomDiffHumidity = self.getRoomMaxDiffHumidity()
 
             # Go to room with greatest diff first
-            targetRoom = max(maxRoomDiffTemp.getTemp(), maxRoomDiffHumidity.getHumidity())
+            # temperature
+            if ((max(maxRoomDiffTemp.getTemp(), maxRoomDiffHumidity.getHumidity()) == maxRoomDiffTemp.getTemp())
+                and (not self.floorTempStable())):
+                targetRoom = maxRoomDiffTemp
+                tempFirst = True
+            else:
+                targetRoom = maxRoomDiffHumidity
+                tempFirst = False
+
+            # Update room index to target
+            roomIndex = targetRoom.getIndex()
             # Get path to room with greatest max
-            path = self.findPathBFS(graph, currRoomIndex, targetRoom.getIndex())
+            path = self.findPathBFS(graph, roomIndex, targetRoom.getIndex())
+            print("HeatMiser detects the max room to be " + str(roomIndex+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
+                str("%.1f" % targetRoom.getHumidity()) + "% humidity")
+            print("HeatMiser is going to room " + str(roomIndex+1) + ". The path to room " + str(roomIndex+1) + " is:")
+            print(path)
+            self.chooseAction(roomIndex, tempFirst)
+
+            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
 
             # Increment total visits by number of rooms passed
             self.visits += len(path)
-
-            # Update currRoomInde
-
-            currRoom = self.floor.rooms[roomIndex]
-            currHumidity = currRoom.getHumidity()
-            currTemp = currRoom.getTemp()
-
-            print("Room " + str(roomIndex+1) + " is at " + str("%.1f" % currTemp) + "°F & " +
-                  str("%.1f" % currHumidity) + "% humidity")
-
-            self.chooseAction(currRoom, roomIndex, currHumidity, currTemp)
-            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
-
-            if roomIndex < 11:
-                roomIndex += 1
-            else:
-                roomIndex = 0
-
-            # Increment total visits
-            self.visits += 1
             print("Moving on ----->")
             print("")
 
@@ -458,14 +429,14 @@ def main():
     totalTempDeviation = totalHumidityDeviation = 0.0
 
     # Create text file to write to. Overwrites previous trial
-    f = open("heatmiser_trial_output", "w")
+    f = open("optimized_heatmiser_trial_output", "w")
     f.close()
 
     for i in range(100):
         floor = Floor()
         optimizedHeatMiser = OptimizedHeatMiser(floor, i+1)
-        optimizedHheatMiser.run()
-        floor.calculateStandardDeviation() # ADDED 
+        optimizedHeatMiser.baselineRun()
+        floor.calculateStandardDeviation() 
 
         totalVisits += optimizedHeatMiser.getVisits()
         totalTempDeviation += floor.getStandardDeviationTemp()
