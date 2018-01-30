@@ -5,6 +5,7 @@ Assignment #2
 
 from random import uniform, randrange
 from math import sqrt
+from queue import PriorityQueue
 import HeuristicParser
 
 # Room class that sets and returns its humidity and temp
@@ -65,11 +66,10 @@ class Floor:
             9: {8: 5, 10: 8},
             10: {7: 17, 11: 2},
             11: {10: 2, 12: 19},
-            12: {12: 19}
+            12: {11: 19}
         }
 
         self.floorPlanHeuristic = HeuristicParser.getHeuristic()
-
 
         # Open created text file to append output
         f = open("heatmiser_trial_output", "a")
@@ -170,6 +170,7 @@ class OptimizedHeatMiser:
         self.floor = floor
         self.raiseTemp = self.raiseHumidity = None
         self.visits = 0
+        self.energyUse = 0
         self.trial = trial
 
     # Determine office with max difference of specified setting; 0 for temp, 1 for humidity
@@ -230,6 +231,9 @@ class OptimizedHeatMiser:
 
     def getVisits(self):
         return self.visits
+
+    def getEnergyUse(self):
+        return self.energyUse
 
     # Check if floor humidity at acceptable average of 47
     def floorHumidityStable(self):
@@ -404,11 +408,9 @@ class OptimizedHeatMiser:
                     new_path = list(path)
                     new_path.append(neighbor)
                     queue.append(new_path)
-                
                 explored[node] = True
         
         return path
-
     
     # Heatmiser searches for office with largest difference - baseline
     def baselineRun(self):
@@ -440,6 +442,8 @@ class OptimizedHeatMiser:
 
             # Get path to room with greatest max
             path = self.findPathBFS(graph, roomIndex+1, targetRoom.getIndex()+1)
+            energyCost = self.getFinalCost(path)
+
             print("HeatMiser detects the max room to be " + str(targetRoom.getIndex()+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
                 str("%.1f" % targetRoom.getHumidity()) + "% humidity")
             print("HeatMiser is going to room " + str(targetRoom.getIndex()+1) + ". The path to room " + str(targetRoom.getIndex()+1) + " is:")
@@ -451,10 +455,12 @@ class OptimizedHeatMiser:
                 print("The other max diff - room " + str(targetRoom.getIndex()+1) + " is on the way!")
                 self.chooseAction(otherRoom.getIndex(), not tempFirst)
 
+            print("The total accumulated energy cost of this path was: " + str(energyCost))
             print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
 
             # Increment total visits by number of rooms passed
             self.visits += (len(path) - 1)
+            self.energyUse += energyCost
             roomIndex = targetRoom.getIndex()
             print("Moving on ----->")
             print("")
@@ -462,8 +468,67 @@ class OptimizedHeatMiser:
         self.getFinalStats()
         #print(HeuristicParser.getHeuristic())
 
-    def getCost(self, start, next, end):
-        cost = self.floor.getFloorCost()[start][next] + self.floor.getHeuristicCost()[next][end]
+    # returns heuristic cost
+    def getHeuristicCost(self, next, end):
+        return self.floor.getHeuristicCost()[next][end]
+
+    # returns energy/edge weight cost
+    def getEnergyCost(self, current, next):
+        return self.floor.getFloorCost()[current][next]
+
+        # takes the final node from A* and backtracks to return best path
+    def recreatePath(self, cameFrom, current):
+        path = [current]
+
+        while current in cameFrom.keys():
+            current = cameFrom[current]
+            path.append(current)
+
+        return list(reversed(path))
+
+    # Given a final path, returns cost associated with it
+    def getFinalCost(self, path):
+        totalCost = 0
+
+        for i in range(0, len(path)-1):
+            totalCost += self.getEnergyCost(path[i], path[i+1])
+
+        return totalCost
+
+    # Returns array path to target room using A* search from start index to target index
+    def aStar(self, graph, start, target):
+        openSet = PriorityQueue()  # keep track of rooms to be checked using a queue
+        closedSet = []  # keep track of rooms visited
+        cameFrom = {}
+        fromStart = {}
+        totalCost = {}
+        fromStart[start] = 0
+
+        totalCost[start] = self.getHeuristicCost(start, target)
+        openSet.put((totalCost[start], start))
+
+        while openSet:
+            current = openSet.get()[1]
+
+            if (current == target):
+                return self.recreatePath(cameFrom, current)
+
+            closedSet.append(current)
+
+            for neighbor in graph[current]:
+                if (not (neighbor in closedSet)):
+                    tentativeEnergyCost = fromStart[current] + self.getEnergyCost(current, neighbor)
+
+                    if ((neighbor not in fromStart) or (tentativeEnergyCost < fromStart[neighbor])):
+                        cameFrom[neighbor] = current
+                        fromStart[neighbor] = tentativeEnergyCost
+
+                        if (neighbor == target):
+                            totalCost[neighbor] = fromStart[neighbor]
+                        else:
+                            totalCost[neighbor] = fromStart[neighbor] + self.getHeuristicCost(neighbor, target)
+                        openSet.put((totalCost[neighbor], neighbor))
+        return None
 
     # Heatmiser searches based on heuristic + weight (A* search)
     def heuristicRun(self):
@@ -494,30 +559,50 @@ class OptimizedHeatMiser:
             # Update room index to target
 
             # Get path to room with greatest max
-            path = self.findPathBFS(graph, roomIndex+1, targetRoom.getIndex()+1)
-            print("HeatMiser detects the max room to be " + str(targetRoom.getIndex()+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
-                str("%.1f" % targetRoom.getHumidity()) + "% humidity")
-            print("HeatMiser is going to room " + str(targetRoom.getIndex()+1) + ". The path to room " + str(targetRoom.getIndex()+1) + " is:")
-            print(path[1:])
+            if (roomIndex != targetRoom.getIndex()):
+                path = self.aStar(graph, roomIndex + 1, targetRoom.getIndex() + 1)
+                energyCost = self.getFinalCost(path)
+
+                print("HeatMiser detects the max room to be " + str(targetRoom.getIndex() + 1) + " at " + str(
+                    "%.1f" % targetRoom.getTemp()) + "°F & " +
+                      str("%.1f" % targetRoom.getHumidity()) + "% humidity")
+                print("HeatMiser is going to room " + str(targetRoom.getIndex() + 1) + ". The path to room " + str(
+                    targetRoom.getIndex() + 1) + " is:")
+                print(path[1:])
+                print("which uses " + str(energyCost) + " energy.\n")
+
+                # Check if other max room en route to target
+                if (otherRoom.getIndex() in path):
+                    print("The other max diff - room " + str(targetRoom.getIndex() + 1) + " is on the way!")
+                    self.chooseAction(otherRoom.getIndex(), not tempFirst)
+                    print("\n")
+
+
+
+                self.energyUse += energyCost
+                self.visits += (len(path) - 1)
+                roomIndex = targetRoom.getIndex()
+
+            else:
+                print("HeatMiser detects the max room to be the current room, number" + str(roomIndex+1) +  " at "
+                      + str("%.1f" % targetRoom.getTemp()) + "°F & "
+                      +  str("%.1f" % targetRoom.getHumidity()) + "% humidity")
+
+                self.visits += 1
+
             self.chooseAction(targetRoom.getIndex(), tempFirst)
 
-            # Check if other max room en route to target
-            if (otherRoom.getIndex() in path):
-                print("The other max diff - room " + str(targetRoom.getIndex()+1) + " is on the way!")
-                self.chooseAction(otherRoom.getIndex(), not tempFirst)
-
-            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
+            print("\nFloor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity: "
+                  + str("%.1f" % self.floor.getAverageHumidity()))
 
             # Increment total visits by number of rooms passed
-            self.visits += (len(path) - 1)
-            roomIndex = targetRoom.getIndex()
             print("Moving on ----->")
             print("")
 
         self.getFinalStats()
 
 def main():
-    totalVisits = 0
+    totalVisits = totalEnergyUsed = 0
     totalTempDeviation = totalHumidityDeviation = 0.0
 
     # Create text file to write to. Overwrites previous trial
@@ -528,17 +613,19 @@ def main():
         floor = Floor()
         optimizedHeatMiser = OptimizedHeatMiser(floor, i+1)
         optimizedHeatMiser.baselineRun()
-        floor.calculateStandardDeviation() 
+        # optimizedHeatMiser.heuristicRun()
+        floor.calculateStandardDeviation()
 
+        totalEnergyUsed += optimizedHeatMiser.getEnergyUse()
         totalVisits += optimizedHeatMiser.getVisits()
         totalTempDeviation += floor.getStandardDeviationTemp()
         totalHumidityDeviation += floor.getStandardDeviationHumidity()
 
-    optimizedHeatMiser.getCost(1,2,3)
     # final breakdown after 100 trials
-    print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
-    print(" ending, on average, with a final temp standard deviation of " + str("%.1f" % (totalTempDeviation/100)) +
-          " and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
+    print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial, and had an"
+            + " average energy use of " + str(int(totalEnergyUsed/100)) + ".")
+    print("It ended, on average, with a final temp standard deviation of " + str("%.1f" % (totalTempDeviation/100))
+          + " and a final humidity standard deviation of " + str("%.2f" % (totalHumidityDeviation/100)) + ".")
 
 
 if __name__ == '__main__':
