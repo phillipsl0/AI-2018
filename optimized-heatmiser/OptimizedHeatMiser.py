@@ -53,6 +53,23 @@ class Floor:
             12: [11]
         }
 
+        self.floorPlanCost = {
+            1: {2: 13, 3: 15},
+            2: {1: 13, 4: 7},
+            3: {1: 15, 7: 23},
+            4: {2: 7, 5: 6, 6: 10},
+            5: {4: 6, 8: 4},
+            6: {4: 10, 7: 9},
+            7: {3: 23, 6: 9, 10: 17},
+            8: {5: 4, 9: 5},
+            9: {8: 5, 10: 8},
+            10: {7: 17, 11: 2},
+            11: {10: 2, 12: 19},
+            12: {12: 19}
+        }
+
+        self.floorPlanHeuristic = HeuristicParser.getHeuristic()
+
 
         # Open created text file to append output
         f = open("heatmiser_trial_output", "a")
@@ -94,6 +111,12 @@ class Floor:
 
     def getFloorPlan(self):
         return self.floorPlan
+
+    def getFloorCost(self):
+        return self.floorPlanCost
+
+    def getHeuristicCost(self):
+        return self.floorPlanHeuristic
 
     def getStandardDeviationTemp(self):
         return self.stdTemp
@@ -387,7 +410,7 @@ class OptimizedHeatMiser:
         return path
 
     
-    # Heatmiser searches for office with largest differrence - baseline
+    # Heatmiser searches for office with largest difference - baseline
     def baselineRun(self):
         # Initialize HeatMiser at a random room
         roomIndex = randrange(0,12)
@@ -439,6 +462,8 @@ class OptimizedHeatMiser:
         self.getFinalStats()
         #print(HeuristicParser.getHeuristic())
 
+    def getCost(self, start, next, end):
+        cost = self.floor.getFloorCost()[start][next] + self.floor.getHeuristicCost()[next][end]
 
     # Heatmiser searches based on heuristic + weight (A* search)
     def heuristicRun(self):
@@ -509,6 +534,7 @@ def main():
         totalTempDeviation += floor.getStandardDeviationTemp()
         totalHumidityDeviation += floor.getStandardDeviationHumidity()
 
+    optimizedHeatMiser.getCost(1,2,3)
     # final breakdown after 100 trials
     print("The HeatMiser had an average of " + str(int(totalVisits/100)) + " office visits per trial,")
     print(" ending, on average, with a final temp standard deviation of " + str("%.1f" % (totalTempDeviation/100)) +
