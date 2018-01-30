@@ -29,7 +29,7 @@ def parseHeuristic(fname):
 					end_node = int(char)
 					atHeuristic = True
 				elif (char != '\t') and atHeuristic:
-					data[start_char] = {end_node: int(char)}
+					data[start_char][end_node] = int(char)
 					break
 		print(data)
 			
