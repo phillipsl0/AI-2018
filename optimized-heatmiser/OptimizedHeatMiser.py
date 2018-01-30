@@ -1,5 +1,11 @@
+'''
+OptimizedHeatMiser.py
+Assignment #2
+'''
+
 from random import uniform, randrange
 from math import sqrt
+import HeuristicParser
 
 # Room class that sets and returns its humidity and temp
 class Room:
@@ -380,7 +386,8 @@ class OptimizedHeatMiser:
         
         return path
 
-    # Heatmiser searches for office with largest differrence
+    
+    # Heatmiser searches for office with largest differrence - baseline
     def baselineRun(self):
         # Initialize HeatMiser at a random room
         roomIndex = randrange(0,12)
@@ -399,9 +406,11 @@ class OptimizedHeatMiser:
             if ((max(maxRoomDiffTemp.getTemp(), maxRoomDiffHumidity.getHumidity()) == maxRoomDiffTemp.getTemp())
                 and (not self.floorTempStable())):
                 targetRoom = maxRoomDiffTemp
+                otherRoom = maxRoomDiffHumidity
                 tempFirst = True
             else:
                 targetRoom = maxRoomDiffHumidity
+                otherRoom = maxRoomDiffTemp
                 tempFirst = False
 
             # Update room index to target
@@ -411,19 +420,76 @@ class OptimizedHeatMiser:
             print("HeatMiser detects the max room to be " + str(targetRoom.getIndex()+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
                 str("%.1f" % targetRoom.getHumidity()) + "% humidity")
             print("HeatMiser is going to room " + str(targetRoom.getIndex()+1) + ". The path to room " + str(targetRoom.getIndex()+1) + " is:")
-            print(path)
+            print(path[1:])
             self.chooseAction(targetRoom.getIndex(), tempFirst)
+
+            # Check if other max room en route to target
+            if (otherRoom.getIndex() in path):
+                print("The other max diff - room " + str(targetRoom.getIndex()+1) + " is on the way!")
+                self.chooseAction(otherRoom.getIndex(), not tempFirst)
 
             print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
 
             # Increment total visits by number of rooms passed
-            self.visits += len(path)
+            self.visits += (len(path) - 1)
             roomIndex = targetRoom.getIndex()
             print("Moving on ----->")
             print("")
 
         self.getFinalStats()
+        #print(HeuristicParser.getHeuristic())
 
+
+    # Heatmiser searches based on heuristic + weight (A* search)
+    def heuristicRun(self):
+        # Initialize HeatMiser at a random room
+        roomIndex = randrange(0,12)
+        graph = self.floor.getFloorPlan()
+
+        # Run on the rooms of the floor
+        while not (self.floorHumidityStable() and self.floorTempStable()):
+            print("HeatMiser is in room " + str(roomIndex+1))
+
+            # Determine max temp and max humidity difference
+            maxRoomDiffTemp = self.getRoomMaxDiffTemperature()
+            maxRoomDiffHumidity = self.getRoomMaxDiffHumidity()
+
+            # Go to room with greatest diff first
+            # temperature
+            if ((max(maxRoomDiffTemp.getTemp(), maxRoomDiffHumidity.getHumidity()) == maxRoomDiffTemp.getTemp())
+                and (not self.floorTempStable())):
+                targetRoom = maxRoomDiffTemp
+                otherRoom = maxRoomDiffHumidity
+                tempFirst = True
+            else:
+                targetRoom = maxRoomDiffHumidity
+                otherRoom = maxRoomDiffTemp
+                tempFirst = False
+
+            # Update room index to target
+
+            # Get path to room with greatest max
+            path = self.findPathBFS(graph, roomIndex+1, targetRoom.getIndex()+1)
+            print("HeatMiser detects the max room to be " + str(targetRoom.getIndex()+1) + " at " + str("%.1f" % targetRoom.getTemp()) + "°F & " +
+                str("%.1f" % targetRoom.getHumidity()) + "% humidity")
+            print("HeatMiser is going to room " + str(targetRoom.getIndex()+1) + ". The path to room " + str(targetRoom.getIndex()+1) + " is:")
+            print(path[1:])
+            self.chooseAction(targetRoom.getIndex(), tempFirst)
+
+            # Check if other max room en route to target
+            if (otherRoom.getIndex() in path):
+                print("The other max diff - room " + str(targetRoom.getIndex()+1) + " is on the way!")
+                self.chooseAction(otherRoom.getIndex(), not tempFirst)
+
+            print("Floor averages: temp: " + str("%.1f" % self.floor.getAverageTemp()) + ", humidity:" + str("%.1f" % self.floor.getAverageHumidity()))
+
+            # Increment total visits by number of rooms passed
+            self.visits += (len(path) - 1)
+            roomIndex = targetRoom.getIndex()
+            print("Moving on ----->")
+            print("")
+
+        self.getFinalStats()
 
 def main():
     totalVisits = 0
