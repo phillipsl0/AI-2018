@@ -7,6 +7,7 @@ from random import uniform, randrange
 from math import sqrt
 from queue import PriorityQueue
 import HeuristicParser
+import sys
 
 # Room class that sets and returns its humidity and temp
 class Room:
@@ -34,8 +35,9 @@ class Room:
 
 # Floor class that generates rooms and sets average humidity and temp
 class Floor:
-    def __init__(self):
+    def __init__(self, fileName):
         self.rooms = []
+        self.fileName = fileName
         self.totalTemp = self.totalHumidity = 0
         self.avgTemp = self.avgHumidity = self.stdTemp = self.stdHumidity = 0.0
         # Array listing index of adjacent offices of each office
@@ -72,7 +74,7 @@ class Floor:
         self.floorPlanHeuristic = HeuristicParser.getHeuristic()
 
         # Open created text file to append output
-        f = open("heatmiser_trial_output", "a")
+        f = open(self.fileName, "a")
         f.write("Starting room states: \n")
         print("Starting room states:")
         # Generates 12 random rooms in the floor
@@ -166,12 +168,13 @@ class Floor:
 
 # Optimized HeatMiser class that adjusts humidity and temp to comfortable levels
 class OptimizedHeatMiser:
-    def __init__(self, floor, trial):
+    def __init__(self, floor, trial, fileName):
         self.floor = floor
         self.raiseTemp = self.raiseHumidity = None
         self.visits = 0
         self.energyUse = 0
         self.trial = trial
+        self.fileName = fileName
 
     # Determine office with max difference of specified setting; 0 for temp, 1 for humidity
     def maxDiff(self, setting):
@@ -209,7 +212,7 @@ class OptimizedHeatMiser:
               + str(int(self.getEnergyUse())) + "\n")
 
         # Open created text file to append output
-        f = open("heatmiser_trial_output", "a")
+        f = open(self.fileName, "a")
         f.write("Final room states: \n")
 
         # Print + output final room states
@@ -221,9 +224,9 @@ class OptimizedHeatMiser:
 
         print("")
         print("Average floor temp -> " + str("%.2f" % self.floor.getAverageTemp()) + "°F ")
-        print("Standard deviation ->" + str("%.1f" % self.floor.getStandardDeviationTemp()))
+        print("Standard deviation -> " + str("%.1f" % self.floor.getStandardDeviationTemp()))
         print("Average floor humidity -> " + str("%.2f" % self.floor.getAverageHumidity()) + "%")
-        print("Standard deviation->" +str("%.2f" % self.floor.getStandardDeviationHumidity()))
+        print("Standard deviation -> " +str("%.2f" % self.floor.getStandardDeviationHumidity()))
 
         print("<----- END OF TRIAL " + str(self.trial) + " ----->")
         f.write("<----- END OF TRIAL " + str(self.trial) + " -----> \n")
@@ -613,14 +616,34 @@ def main():
     totalTempDeviation = totalHumidityDeviation = 0.0
 
     # Create text file to write to. Overwrites previous trial
-    f = open("optimized_heatmiser_trial_output", "w")
+    fileName = ""
+
+    searchType = input("Welcome to Optimized HeatMiser! Please select your option by pressing the appropriate number: 1 for baseline, 2 for heuristic, or 3 to quit.")
+    if (searchType == "1"):
+        print("Baseline search selected!")
+        fileName = "optimized_heatmiser_trial_output_baseline"
+        search = 0
+    elif (searchType == "2"):
+        print("Heuristic search selected!")
+        fileName = "optimized_heatmiser_trial_output_heuristic"
+        search = 1
+    elif (searchType == "3"):
+        print("Shutting down...")
+    else:
+        print("Sorry, that was an incorrect command. Shutting down...")
+        sys.exit()
+    
+    f = open(fileName, "w")
     f.close()
 
     for i in range(100):
-        floor = Floor()
-        optimizedHeatMiser = OptimizedHeatMiser(floor, i+1)
-        optimizedHeatMiser.baselineRun()
-        # optimizedHeatMiser.heuristicRun()
+        floor = Floor(fileName)
+        optimizedHeatMiser = OptimizedHeatMiser(floor, i+1, fileName)
+        
+        if search == 0:
+            optimizedHeatMiser.baselineRun()
+        elif search == 1:
+            optimizedHeatMiser.heuristicRun()
         floor.calculateStandardDeviation()
 
         totalEnergyUsed += optimizedHeatMiser.getEnergyUse()
