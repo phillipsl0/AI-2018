@@ -9,39 +9,22 @@ def parseData(fname):
         f.readline()  # skip header
         # Iterate line by line
         data = []
+        headers = ['ID', 'Distance', 'Speeding', 'Location', 'OSHA']
         for line in f:
             line = line.strip()
 
             # Redo tabs with spaces
             line = line.replace('\t', ',')
 
-            print(line)
-            line_list = line.split(",")
-            print(line_list)
+            lineList = line.split(",")
 
-            # end_node = None
-            # atHeuristic = False
+            heatmiser = {}
+            for i in range(len(lineList)):
+                heatmiser[headers[i]] = lineList[i]
 
-            # # Add dictionary entry for start node
-            # if start_int not in data:
-            #     data[start_int] = {}
+            data.append(heatmiser)
 
-            # # Iterate through line
-            # for i in range(start, len(line)):
-            #     if (line[i] != ',' and line[i + 1] == ','):
-            #         if (i > 0 and line[i - 1] != ','):
-            #             char = line[i - 1:i + 1]
-            #         else:
-            #             char = line[i]
-
-            #         # Don't include spaces
-            #         if (char != '\t') and (not atHeuristic):
-            #             end_node = int(char)
-            #             atHeuristic = True
-            #         elif (char != '\t') and atHeuristic:
-            #             data[start_int][end_node] = int(char)
-            #             break
-
+    print(data)
     return data
 
 
