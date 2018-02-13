@@ -102,3 +102,6 @@ ENV/
 heatmiser_trial_output
 optimized_heatmiser_trial_output
 optimized-heatmiser.iml
+osha_compliant/.idea
+heatmiser_trial_output_energy
+heatmiser_trial_output_visits
