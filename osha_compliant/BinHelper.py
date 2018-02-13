@@ -11,7 +11,7 @@ def createBins(data, dataType, dataLabels, binNumber):
         dataLabels = distanceLabels
 
     # splits data into 5 approximately even bins
-    result = qcut(data, binNumber, retbins=True, labels=dataLabels)
+    result = qcut(data, binNumber, labels=dataLabels)
 
     return result
 
