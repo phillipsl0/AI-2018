@@ -21,14 +21,16 @@ class KMeansClustering:
 		self.classification = {} # dictionary containing key of a dist, speed point and value of cluster index it belongs to
 		self.maxIter = maxIter
 		self.hasUpdated = True
+		self.oshaStatus = {}
 
 	# Converts heatmiser arrays into a numpy array of distance, speed values
+	# Gets heatmiser status.
 	def processData(self, data):
 		arr = []
 		for heatmiser in data:
 			point = [float(heatmiser[1]), float(heatmiser[2])]
 			arr.append(point)
-		# X = np.array(arr)
+			self.oshaStatus[self.pointToKey(point)] = heatmiser[4] # Get OSHA status for heatmiser
 		return arr
 
 	def calcEuclideanDistance(self, p, q):
@@ -115,6 +117,7 @@ class KMeansClustering:
 		# Assign training instance to cluster with closest centroid
 		count = 0
 		self.hasUpdated = False
+		reFitted = False
 		for heatmiser in points:
 			count += 1
 			# Print to one line dynamically
@@ -124,6 +127,7 @@ class KMeansClustering:
 			key = self.pointToKey(heatmiser)
 			# If initializing, assign point to nearest cluster
 			if first:
+				reFitted = True # automatically reaverage all clusters
 				closestCenter = None
 				minDist = float('inf')
 				index = None
@@ -138,16 +142,10 @@ class KMeansClustering:
 						self.classification[key] = centroidIndex
 						minDist = dist
 
-				# Update cluster's centroid as average of all members
-				self.updateClusterCentroid(self.classification[key])
-				self.hasUpdated = True
-
 			# See if point is closer to another cluster
 			else:
 				currCluster = self.classification[key]
-				oldDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
 				closestDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
-				closerCluster = None
 
 				for centroidIndex in range(self.k):
 					# Skip if same cluster
@@ -155,24 +153,17 @@ class KMeansClustering:
 						centroid = self.centroids[centroidIndex]
 						dist = self.calcEuclideanDistance(centroid, heatmiser)
 
-						# print("Comparing current classified cluster of " + str(currCluster) + " with distance of " + str(oldDist) + " to "+ str(centroidIndex) + " with distance of " + str(dist))
-
 						# Update classification if smaller distance found
 						if dist < closestDist:
-							closestDist = dist
-							closerCluster = centroidIndex
+							self.classification[key] = centroidIndex
+							reFitted = True # indicates update will occur
 
-						# Update average if new classification
-						if closerCluster is not None:
-							
-							# print("Found a closer cluster!")
-							# print("Was with cluster " + str(currCluster) + " with distance of " + str(oldDist) + ". Now with "+ str(closerCluster) + " with distance of " + str(closestDist))
-							
-							self.classification[key] = closerCluster
-							self.updateClusterCentroid(closerCluster) # add point
-							self.updateClusterCentroid(currCluster) # remove point
-							self.hasUpdated = True # indicate update occurred
-							# UDPATE WITH EACH MOVE OR AFTER ALL MOVES???
+		# Update average if re-classification detected
+		if (reFitted is True):
+			self.hasUpdated = True # indicate update occurred
+			for centroidIndex in range(self.k):
+				self.updateClusterCentroid(centroidIndex)
+
 
 	# Get error sum of squares of a given centroid, sum of square differences between
 	# each observation and its group's mean
@@ -190,18 +181,38 @@ class KMeansClustering:
 
 	def getFinalStatsKMeans(self):
 		res = []
+		totals = {}
+		print("\n")
 		for i in range(self.k):
 			SSE = self.getSSE(i)
 			res.append(SSE)
 
+			# Get total of how many osha instances are in a cluster
+			status = {}
 			points = [key for key in self.classification if self.classification[key] == i]
+			for point in points:
+				osha = self.oshaStatus[point]
+				if osha not in status:
+					status[osha] = 1
+				else:
+					status[osha] += 1
 
-			print("\n *** --- *** \n")
-			print("Cluser " + str(i))
+				# Increment classification totals
+				if osha not in totals:
+					totals[osha] = 1
+				else:
+					totals[osha] += 1
+
+
+			print("*** --- *** \n")
+			print("Cluster " + str(i))
 			print("Center: ", self.centroids[i])
 			#print("Points: ", points)
+			print("OSHA Status: ", status)
 			print("SSE: ", str(SSE))
 			print("\n *** --- *** \n")
+
+		print("Totals", totals)
 
 		return res
 
@@ -219,7 +230,7 @@ class KMeansClustering:
 			for heatmiser in self.classification:
 				if self.classification[heatmiser] == index:
 					point = self.keyToPoint(heatmiser)
-					plt.scatter(point[0], point[1], marker="o", color=color, s=150, linewidths=5)
+					plt.scatter(point[0], point[1], marker="o", color=color, s=50, linewidths=5)
 			plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
 		
 		print("Visualization displayed.")
@@ -252,7 +263,8 @@ class KMeansClustering:
 		print("Processing data...")
 		X = self.processData(data)
 		print("Initializing clusters...")
-		self.initClustersRandom(X)
+		# self.initClustersRandom(X) 		# initialize clusters randomly
+		self.initClustersFurthest(X) 	# initialize clusters based on distance
 
 		print("Initial clusters: ")
 		print(self.centroids)
@@ -424,10 +436,10 @@ def main():
 	# info = dt.setInformationGain(data)
 	
 	data = dp.getDataList()
-	# kCluster = KMeansClustering(4)
-	# kCluster.run(data)
+	kCluster = KMeansClustering(2)
+	kCluster.run(data)
 
-	determineOptimalK(data)
+	#determineOptimalK(data)
 
 if __name__ == '__main__':
     main()
