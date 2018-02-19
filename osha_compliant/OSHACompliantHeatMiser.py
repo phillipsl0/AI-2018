@@ -144,7 +144,13 @@ class KMeansClustering:
 		print("Initializing clusters...")
 		self.initializeClusters(X)
 		print("Fitting points...")
-		self.fit(X)
+		# Restrict iterations based on hard-coded data
+		for i in range(self.max_iter):
+			# Print to one line dynamically
+			sys.stdout.write("On iteration " + str(i) + " out of " + str(self.max_iter)) + "                                        \r",)
+			sys.stdout.flush()
+			self.fit(X)
+			
 		print("Visualizing clusters...")
 		self.getClusterVisualization(X)
 
