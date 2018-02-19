@@ -41,12 +41,7 @@ def parseDataList(fname):
             # Redo tabs with spaces
             line = line.replace('\t', ',')
 
-            lineList = line.split(",")
-            heatmiser = []
-            # Only numbers for now
-            # for i in range(len(lineList)):
-            for i in range(1, 3):
-                heatmiser.append(lineList[i])
+            heatmiser = line.split(",")
             data.append(heatmiser)
     return data
 
@@ -96,6 +91,11 @@ def getDataArrays():
 def getDataJSON():
     fname = 'HW3_Data.txt'
     data = parseDataJSON(fname)
+    return data
+
+def getDataList():
+    fname = 'HW3_Data.txt'
+    data = parseDataList(fname)
     return data
 
 def main():

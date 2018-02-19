@@ -6,6 +6,152 @@ Assignment #3
 import DataParser as dp
 import sys
 import math
+import matplotlib.pyplot as plt
+import numpy as np
+
+'''
+Implementation of k-means clustering using distance, speed
+'''
+class KMeansClustering:
+	def __init__(self, k=2, max_iter=100):
+		self.k = k # number of clusters
+		self.centroids = {}
+		self.classification = {} # dictionary containing key of a dist, speed point and value of cluster index it belongs to
+		self.max_iter = max_iter
+
+	# Converts heatmiser arrays into a numpy array of distance, speed values
+	def processData(self, data):
+		arr = []
+		for heatmiser in data:
+			point = [float(heatmiser[1]), float(heatmiser[2])]
+			arr.append(point)
+		X = np.array(arr)
+		return X
+
+	def calcEuclideanDistance(self, p, q):
+		pX = p[0]
+		pY = p[1]
+
+		qX = q[0]
+		qY = q[1]
+
+		return math.sqrt(((qX - pX)**2) + ((qY - pY)**2))
+
+	# Initialize clusters based on points furthest away in data
+	def initializeClusters(self, points):
+		maxDist = 0
+		point = None
+
+		# Iterate through points
+		for h in range(len(points)):
+			j = points[h]
+			for i in range(len(points)):
+				# Skip if same point
+				k = points[i]
+				if i == h:
+					continue
+
+				dist = self.calcEuclideanDistance(j, k)
+
+				if dist > maxDist:
+					maxDist = dist
+
+					self.centroids[0] = j
+					self.classification[self.pointToKey(j)] = 0
+
+					self.centroids[1] = k
+					self.classification[self.pointToKey(k)] = 1
+
+	# Helper function that converts point to string
+	def pointToKey(self, point):
+		strPoint = [str(val) for val in point]
+		key = ','.join(strPoint)
+		return key
+
+	# Helper function that converts string to array
+	# Ex. "9.0,4.57" --> [9.0, 4.57]
+	def keyToPoint(self, key):
+		strPoint = key.split(",")
+		arr = [float(strPoint[0]), float(strPoint[1])]
+		return arr
+
+	# Update average of given centroid
+	def updateClusterCentroid(self, index):
+		total = sumX = sumY = 0
+		for heatmiser in self.classification:
+			if self.classification[heatmiser] == index:
+				sumX += self.keyToPoint(heatmiser)[0]
+				sumY += self.keyToPoint(heatmiser)[1]
+				total += 1
+
+		newX = sumX / total
+		newY = sumY / total
+		self.centroids[index] = [newX, newY]
+
+
+	# Fit points to appropriate clusters
+	def fit(self, points):
+		# Assign training instance to cluster with closest centroid
+		count = 0
+		for heatmiser in points:
+			count += 1
+			# Print to one line dynamically
+			sys.stdout.write("Fitting point " + str(count) + " out of " + str(len(points)) + "                                        \r",)
+			sys.stdout.flush()
+
+			closestCenter = None
+			minDist = float('inf')
+			index = None
+			for centroidIndex in range(self.k):
+				centroid = self.centroids[centroidIndex]
+				dist = self.calcEuclideanDistance(centroid, heatmiser)
+
+				# Update classification if smaller distance
+				if dist < minDist:
+					self.classification[self.pointToKey(heatmiser)] = centroidIndex
+					minDist = dist
+
+			# Update cluster's centroid as average of all members
+			self.updateClusterCentroid(self.classification[self.pointToKey(heatmiser)])
+
+
+	# Displays cluster visualization
+	def getClusterVisualization(self, points):
+		colors = ["g","r","c","b","y"]
+		
+		# Display centroids and corresponding points
+		for index in self.centroids:
+			color = colors[index]
+			centroid = self.centroids[index]
+			#plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
+
+			# Display points
+			for heatmiser in self.classification:
+				if self.classification[heatmiser] == index:
+					point = self.keyToPoint(heatmiser)
+					plt.scatter(point[0], point[1], marker="o", color=color, s=150, linewidths=5)
+			plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
+		
+		print("Visualization displayed.")
+		plt.show()
+
+
+	def run(self, data):
+		print("Processing data...")
+		X = self.processData(data)
+		# plt.scatter(X[:,0], X[:,1], s=150)
+		# plt.show()
+		print("Initializing clusters...")
+		self.initializeClusters(X)
+		print("Fitting points...")
+		self.fit(X)
+		print("Visualizing clusters...")
+		self.getClusterVisualization(X)
+
+
+
+
+
 
 # Optimized HeatMiser class that adjusts humidity and temp to comfortable levels
 class DecisionTree:
@@ -13,12 +159,20 @@ class DecisionTree:
 		self.allInfoGain = {}
 
 
+	def buildTree(self, data):
+		pass
+
+
+	def getRootNode(self, outlook):
+		pass
+		
 
 	'''
 	Helper function that gets counts of values for each feature
 	'''
 	def getFeatureTotals(self, data):
 		totalsDict = {}
+		print("Getting heatmiser data...")
 		# Iterate through each heatmiser
 		for heatmiser in data:
 			# Iterate through each feature in heatmiser data
@@ -113,7 +267,7 @@ class DecisionTree:
 	'''
 	Calculates information gain of all features
 	'''
-	def setInformationGain(self, data):
+	def calculateInformationGain(self, data):
 		featureTotals = self.getFeatureTotals(data)
 
 		classEntropy = self.getClassEntropy(featureTotals['OSHA'])
@@ -131,98 +285,14 @@ class DecisionTree:
 		print(self.allInfoGain)
 
 
-	# '''
-	# Creates splits, an attribute in the dataset and a value, useful for indexing into rows of data
-	# Separating dataset into two rows given index of an attribute and a split value for the attribute
-	# Split a dataset based on an attribute and an attribuet value
-	# '''
-	# def splitData(self, index, value, dataset):
-	# 	left = []
-	# 	right = []
-
-	# 	# Iterate over each row in dataset
-	# 	for row in dataset:
-	# 		# If attribute below split value, assign to left
-	# 		if row[index] < value:
-	# 			left.append(row)
-	# 		# If above or equal to, assign to right
-	# 		else:
-	# 			right.append(row)
-
-	# 	return left, right
-
-
-	# '''
-	# Select best split point for data
-	# '''
-	# def getSplit(self, dataset):
-	# 	classValues = list(set(row[-1] for row in dataset))
-	# 	bIndex, bValue, bScore = 999, 999, 999
-	# 	bGroups = None
-
-	# 	# Iterate over each attribute as a candidate split
-	# 	for index in range(len(dataset[0])-1):
-	# 		print("On index: " + str(index))
-	# 		# Check every value of that attribute
-	# 		count = 0
-	# 		for row in dataset:
-	# 			count += 1
-	# 			sys.stdout.write("On row " + str(count) + " out of " + str(len(dataset)) + "                         \r",)
-	# 			sys.stdout.flush()
-
-
-	# 			groups = self.splitData(index, row[index], dataset)
-	# 			gini = self.calculateGiniIndex(groups, classValues)
-
-	# 			# update best split point if new node is better
-	# 			if gini < bScore:
-	# 				#print("Better gini index: " + str(gini))
-	# 				#print(groups)
-	# 				bIndex = index
-	# 				bValue = row[index]
-	# 				bSore = gini
-	# 				bGroups = groups
-
-	# 	# Use dictionary to represent node in the decision tree
-	# 	return {'index': bIndex, 'value': bValue, 'groups': bGroups} 
-
-	# '''
-	# Cost function used to evaluate splits in the dataset
-	# '''
-	# def calculateGiniIndex(self, groups, classes):
-	# 	# count all samples at split point
-	# 	n_instances = float(sum([len(group) for group in groups]))
-	# 	# sum weighted Gini index for each group
-	# 	gini = 0.0
-	# 	for group in groups:
-	# 		size = float(len(group))
-	# 		# avoid divide by zero
-	# 		if size == 0:
-	# 			continue
-	# 		score = 0.0
-	# 		# score group based on the score for each class
-	# 		for class_val in classes:
-	# 			p = [row[-1] for row in group].count(class_val) / size
-	# 			score += p * p
-	# 		# weight the group score by its relative size
-	# 		gini += (1.0 - score) * (size / n_instances)
-	# 	return gini
-
-
-	# # Print precision, recall, and F1 of each individual class and all classes combined
-	# # Output for each fold and average of all 10 folds
-	# # Output plot of performance for each fold over majority class baseline
-	# def printResults(self):
-	# 	pass
-
-
 def main():
-	dt = DecisionTree()
-	data = dp.getDataJSON()
-	info = dt.setInformationGain(data)
-	# data = dp.getDataList()
-	# split = dt.getSplit(data)
-	# print('Split: [X%d < %.3f]' % ((split['index']+1), split['value']))
+	# dt = DecisionTree()
+	# data = dp.getDataJSON()
+	# info = dt.setInformationGain(data)
+	
+	kCluster = KMeansClustering()
+	data = dp.getDataList()
+	kCluster.run(data)
 
 if __name__ == '__main__':
 	main()
