@@ -71,8 +71,8 @@ def parseDataArrays(fname):
             lineList = line.split(",")
 
             ids.append(lineList[0])
-            speeds.append(float(lineList[1]))
-            distances.append(float(lineList[2]))
+            distances.append(float(lineList[1]))
+            speeds.append(float(lineList[2]))
             locations.append(lineList[3])
             oshas.append(lineList[4])
 
@@ -81,8 +81,8 @@ def parseDataArrays(fname):
     distances = createBins(distances, "distance", [], 5)
 
     data[headers[0]] = ids
-    data[headers[1]] = speeds
-    data[headers[2]] = distances
+    data[headers[1]] = distances
+    data[headers[2]] = speeds
     data[headers[3]] = locations
     data[headers[4]] = oshas
 
