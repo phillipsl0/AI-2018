@@ -13,11 +13,12 @@ import numpy as np
 Implementation of k-means clustering using distance, speed
 '''
 class KMeansClustering:
-	def __init__(self, k=2, max_iter=100):
+	def __init__(self, k=2, maxIter=10):
 		self.k = k # number of clusters
 		self.centroids = {}
 		self.classification = {} # dictionary containing key of a dist, speed point and value of cluster index it belongs to
-		self.max_iter = max_iter
+		self.maxIter = maxIter
+		self.hasUpdated = True
 
 	# Converts heatmiser arrays into a numpy array of distance, speed values
 	def processData(self, data):
@@ -25,8 +26,8 @@ class KMeansClustering:
 		for heatmiser in data:
 			point = [float(heatmiser[1]), float(heatmiser[2])]
 			arr.append(point)
-		X = np.array(arr)
-		return X
+		# X = np.array(arr)
+		return arr
 
 	def calcEuclideanDistance(self, p, q):
 		pX = p[0]
@@ -53,9 +54,11 @@ class KMeansClustering:
 
 				dist = self.calcEuclideanDistance(j, k)
 
+				# Found point further away
 				if dist > maxDist:
 					maxDist = dist
 
+					# Assign to centroids
 					self.centroids[0] = j
 					self.classification[self.pointToKey(j)] = 0
 
@@ -77,7 +80,9 @@ class KMeansClustering:
 
 	# Update average of given centroid
 	def updateClusterCentroid(self, index):
-		total = sumX = sumY = 0
+		total = 0
+		sumX = 0
+		sumY = 0
 		for heatmiser in self.classification:
 			if self.classification[heatmiser] == index:
 				sumX += self.keyToPoint(heatmiser)[0]
@@ -90,29 +95,63 @@ class KMeansClustering:
 
 
 	# Fit points to appropriate clusters
-	def fit(self, points):
+	def fit(self, points, first):
 		# Assign training instance to cluster with closest centroid
 		count = 0
+		self.hasUpdated = False
 		for heatmiser in points:
 			count += 1
 			# Print to one line dynamically
-			sys.stdout.write("Fitting point " + str(count) + " out of " + str(len(points)) + "                                        \r",)
+			sys.stdout.write("Fitting point " + str(count) + " out of " + str(len(points)) + "                                                \r",)
 			sys.stdout.flush()
 
-			closestCenter = None
-			minDist = float('inf')
-			index = None
-			for centroidIndex in range(self.k):
-				centroid = self.centroids[centroidIndex]
-				dist = self.calcEuclideanDistance(centroid, heatmiser)
+			key = self.pointToKey(heatmiser)
+			# If initializing, assign point to nearest cluster
+			if first:
+				closestCenter = None
+				minDist = float('inf')
+				index = None
+				for centroidIndex in range(self.k):
+					centroid = self.centroids[centroidIndex]
+					dist = self.calcEuclideanDistance(centroid, heatmiser)
 
-				# Update classification if smaller distance
-				if dist < minDist:
-					self.classification[self.pointToKey(heatmiser)] = centroidIndex
-					minDist = dist
+					# Update classification if smaller distance
+					if dist < minDist:
+						self.classification[key] = centroidIndex
+						minDist = dist
 
-			# Update cluster's centroid as average of all members
-			self.updateClusterCentroid(self.classification[self.pointToKey(heatmiser)])
+				# Update cluster's centroid as average of all members
+				self.updateClusterCentroid(self.classification[key])
+				self.hasUpdated = True
+
+			# See if point is closer to another cluster
+			else:
+				currCluster = self.classification[key]
+				oldDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
+				closestDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
+				closerCluster = None
+
+				for centroidIndex in range(self.k):
+					# Skip if same cluster
+					if centroidIndex != currCluster:
+						centroid = self.centroids[centroidIndex]
+						dist = self.calcEuclideanDistance(centroid, heatmiser)
+
+						# print("Comparing current classified cluster of " + str(currCluster) + " with distance of " + str(oldDist) + " to "+ str(centroidIndex) + " with distance of " + str(dist))
+
+						# Update classification if smaller distance found
+						if dist < closestDist:
+							closestDist = dist
+							closerCluster = centroidIndex
+
+						# Update average if new classification
+						if closerCluster is not None:
+							print("Found a closer cluster!")
+							print("Was with cluster " + str(currCluster) + " with distance of " + str(oldDist) + ". Now with "+ str(closerCluster) + " with distance of " + str(closestDist))
+							self.classification[key] = closerCluster
+							self.updateClusterCentroid(closerCluster) # add point
+							self.updateClusterCentroid(currCluster) # remove point
+							self.hasUpdated = True # indicate update occurred
 
 
 	# Displays cluster visualization
@@ -133,6 +172,9 @@ class KMeansClustering:
 			plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
 		
 		print("Visualization displayed.")
+		plt.ylabel("Speed")
+		plt.xlabel("Distance")
+		plt.title("K Means Clustering of Heatmiser Data")
 		plt.show()
 
 
@@ -143,14 +185,26 @@ class KMeansClustering:
 		# plt.show()
 		print("Initializing clusters...")
 		self.initializeClusters(X)
+
+		print
+		print("Initial clusters: ")
+		print(self.centroids)
+		print
 		print("Fitting points...")
+		
 		# Restrict iterations based on hard-coded data
-		for i in range(self.max_iter):
+		first = True # indicates initialization
+		i = 0
+		while self.hasUpdated and (i < self.maxIter):
+			i += 1
 			# Print to one line dynamically
-			sys.stdout.write("On iteration " + str(i) + " out of " + str(self.max_iter)) + "                                        \r",)
-			sys.stdout.flush()
-			self.fit(X)
-			
+			print("On iteration " + str(i) + " out of " + str(self.maxIter))
+			self.fit(X, first)
+			first = False 
+			print("")
+			print("Updated clusters: ")
+			print(self.centroids)
+
 		print("Visualizing clusters...")
 		self.getClusterVisualization(X)
 
