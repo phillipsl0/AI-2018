@@ -8,9 +8,11 @@ import sys
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 '''
 Implementation of k-means clustering using distance, speed
+Using a library: https://pythonprogramminglanguage.com/kmeans-elbow-method/
 '''
 class KMeansClustering:
 	def __init__(self, k=2, maxIter=10):
@@ -39,7 +41,8 @@ class KMeansClustering:
 		return math.sqrt(((qX - pX)**2) + ((qY - pY)**2))
 
 	# Initialize clusters based on points furthest away in data
-	def initializeClusters(self, points):
+	# ONLY WORKS FOR K = 2
+	def initClustersFurthest(self, points):
 		maxDist = 0
 		point = None
 
@@ -64,6 +67,19 @@ class KMeansClustering:
 
 					self.centroids[1] = k
 					self.classification[self.pointToKey(k)] = 1
+					self.k = 2
+
+	# Initialize clusters randomly
+	def initClustersRandom(self, points):
+		# Randomly choose k points from data
+		randPoints = random.sample(points, self.k)
+
+		# Initialize cluster centers as points
+		for i in range(self.k):
+			point = randPoints[i]
+			self.centroids[i] = point
+			self.classification[self.pointToKey(point)] = i
+
 
 	# Helper function that converts point to string
 	def pointToKey(self, point):
@@ -111,6 +127,8 @@ class KMeansClustering:
 				closestCenter = None
 				minDist = float('inf')
 				index = None
+
+				# Check distance to each centroid
 				for centroidIndex in range(self.k):
 					centroid = self.centroids[centroidIndex]
 					dist = self.calcEuclideanDistance(centroid, heatmiser)
@@ -146,13 +164,46 @@ class KMeansClustering:
 
 						# Update average if new classification
 						if closerCluster is not None:
-							print("Found a closer cluster!")
-							print("Was with cluster " + str(currCluster) + " with distance of " + str(oldDist) + ". Now with "+ str(closerCluster) + " with distance of " + str(closestDist))
+							
+							# print("Found a closer cluster!")
+							# print("Was with cluster " + str(currCluster) + " with distance of " + str(oldDist) + ". Now with "+ str(closerCluster) + " with distance of " + str(closestDist))
+							
 							self.classification[key] = closerCluster
 							self.updateClusterCentroid(closerCluster) # add point
 							self.updateClusterCentroid(currCluster) # remove point
 							self.hasUpdated = True # indicate update occurred
+							# UDPATE WITH EACH MOVE OR AFTER ALL MOVES???
 
+	# Get error sum of squares of a given centroid, sum of square differences between
+	# each observation and its group's mean
+	def getSSE(self, index):
+		currSum = 0
+		centroid = self.centroids[index]
+		for key in self.classification:
+			# Get error of points only in given cluster
+			if self.classification[key] == index:
+				point = self.keyToPoint(key)
+				diff = ((centroid[0] - point[0])**2) + ((centroid[1] - point[1])**2)
+				currSum += diff
+
+		return currSum
+
+	def getFinalStatsKMeans(self):
+		res = []
+		for i in range(self.k):
+			SSE = self.getSSE(i)
+			res.append(SSE)
+
+			points = [key for key in self.classification if self.classification[key] == i]
+
+			print("\n *** --- *** \n")
+			print("Cluser " + str(i))
+			print("Center: ", self.centroids[i])
+			#print("Points: ", points)
+			print("SSE: ", str(SSE))
+			print("\n *** --- *** \n")
+
+		return res
 
 	# Displays cluster visualization
 	def getClusterVisualization(self, points):
@@ -177,14 +228,31 @@ class KMeansClustering:
 		plt.title("K Means Clustering of Heatmiser Data")
 		plt.show()
 
+	def getDistorian(self, data):
+		print("Processing data...")
+		X = self.processData(data)
+		print("Initializing clusters...")
+		self.initClustersRandom(X)
+		print("Fitting points...")
+		
+		# Restrict iterations based on hard-coded data
+		first = True # indicates initialization
+		i = 0
+		while self.hasUpdated and (i < self.maxIter):
+			i += 1
+			# Print to one line dynamically
+			print("On iteration " + str(i) + " out of " + str(self.maxIter) + "                       ")
+			self.fit(X, first)
+			first = False 
+
+		distortion = sum(self.getFinalStatsKMeans())
+		return distortion
 
 	def run(self, data):
 		print("Processing data...")
 		X = self.processData(data)
-		# plt.scatter(X[:,0], X[:,1], s=150)
-		# plt.show()
 		print("Initializing clusters...")
-		self.initializeClusters(X)
+		self.initClustersRandom(X)
 
 		print
 		print("Initial clusters: ")
@@ -205,11 +273,10 @@ class KMeansClustering:
 			print("Updated clusters: ")
 			print(self.centroids)
 
+		print("Final stats: ")
+		self.getFinalStatsKMeans()
 		print("Visualizing clusters...")
 		self.getClusterVisualization(X)
-
-
-
 
 
 
@@ -345,14 +412,35 @@ class DecisionTree:
 		print(self.allInfoGain)
 
 
+# Function to determine optimal K
+def determineOptimalK(data):
+	# Create a new plot
+	plt.plot()
+	distortions = []
+	# Display graph up to k = 10
+	K = range(1, 10)
+	for k in K:
+		kModel = KMeansClustering(k)
+		distortion = kModel.getDistorian(data)
+		distortions.append(distortion)
+
+	plt.plot(K, distortions, 'bx-')
+	plt.xlabel('k')
+	plt.ylabel('Sum of squared errors')
+	plt.title('The Elbow Method showing the optimal k')
+	plt.show()
+
+
 def main():
 	# dt = DecisionTree()
 	# data = dp.getDataJSON()
 	# info = dt.setInformationGain(data)
 	
-	kCluster = KMeansClustering()
 	data = dp.getDataList()
-	kCluster.run(data)
+	# kCluster = KMeansClustering(4)
+	# kCluster.run(data)
+
+	determineOptimalK(data)
 
 if __name__ == '__main__':
 	main()
