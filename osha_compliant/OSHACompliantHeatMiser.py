@@ -22,6 +22,7 @@ class KMeansClustering:
 		self.maxIter = maxIter
 		self.hasUpdated = True
 		self.oshaStatus = {}
+		self.locationStatus = {}
 		self.fileName = (fileName + str(k))
 
 	# Converts heatmiser arrays into a numpy array of distance, speed values
@@ -32,6 +33,7 @@ class KMeansClustering:
 			point = [float(heatmiser[1]), float(heatmiser[2])]
 			arr.append(point)
 			self.oshaStatus[self.pointToKey(point)] = heatmiser[4] # Get OSHA status for heatmiser
+			self.locationStatus[self.pointToKey(point)] = heatmiser[3] # Get location type for heatmiser
 		return arr
 
 	def calcEuclideanDistance(self, p, q):
@@ -199,28 +201,41 @@ class KMeansClustering:
 			SSE = self.getSSE(i)
 			lstSSE.append(SSE)
 
-			# Get total of how many osha instances are in a cluster
-			status = {}
+			# Get total of how many osha and location instances are in a cluster
+			statusOSHA = {}
+			statusLocation = {}
 			points = [key for key in self.classification if self.classification[key] == i]
 			for point in points:
 				osha = self.oshaStatus[point]
-				if osha not in status:
-					status[osha] = 1
+				if osha not in statusOSHA:
+					statusOSHA[osha] = 1
 				else:
-					status[osha] += 1
+					statusOSHA[osha] += 1
+
+				location = self.locationStatus[point]
+				if location not in statusLocation:
+					statusLocation[location] = 1
+				else:
+					statusLocation[location] += 1
 
 				# Increment classification totals
 				if osha not in totals:
 					totals[osha] = 1
 				else:
 					totals[osha] += 1
+				if location not in totals:
+					totals[location] = 1
+				else:
+					totals[location] += 1
 
-			strStatus = ", ".join([(s + ": " + str(status[s])) for s in status]) # get string list format
+			strStatusOSHA = ", ".join([(s + ": " + str(statusOSHA[s])) for s in statusOSHA]) # get string list format
+			strStatusLocation = ", ".join([(s + ": " + str(statusLocation[s])) for s in statusLocation])
 			res = (
 				"*** --- *** \n" 
 			+ ("Cluster " + (str(i+1))) + "\n"
 			+ ("Center: " + ", ".join([str(p) for p in self.centroids[i]])) + "\n"
-			+ ("OSHA statuses: " + strStatus) + "\n"
+			+ ("OSHA statuses: " + strStatusOSHA) + "\n"
+			+ ("Location statuses: " + strStatusLocation) + "\n"
 			+ ("SSE: " + str(SSE)) + "\n"
 			+  "*** --- *** \n"
 			)
@@ -229,15 +244,15 @@ class KMeansClustering:
 			print(res)
 
 		strTotals = ", ".join([(s + ": " + str(totals[s])) for s in totals])
-		f.write(("OSHA status totals: " + strTotals))
-		print("OSHA status totals: ", strTotals)
+		f.write(("OSHA and Location status totals: " + strTotals))
+		print("OSHA and Location status totals: ", strTotals)
 		f.close()
 
 		return lstSSE
 
 	# Displays points and their respective status
 	# Green = Compliant, red = NonCompliant, Cyan = Safe
-	def getPointVisualization(self, data):
+	def getPointVisualizationOSHA(self, data):
 		print("Processing data...")
 		points = self.processData(data)
 
@@ -257,10 +272,32 @@ class KMeansClustering:
 		plt.title("OSHA Statuses of Heatmiser Data")
 		plt.show()
 
+	# Displays points and their respective location
+	# Yellow = Office, blue = Warehouse
+	def getPointVisualizationLocation(self, data):
+		print("Processing data...")
+		points = self.processData(data)
+
+		colors = ["y", "b"]
+		statuses = ["Office", "Warehouse"]
+
+		
+		print("Visualizing data...")
+		for heatmiser in points:
+			status = self.locationStatus[self.pointToKey(heatmiser)]
+			color = colors[statuses.index(status)]
+			plt.scatter(heatmiser[0], heatmiser[1], marker="o", color=color, s=50, linewidths=5)
+
+		print("Visulization displayed.")
+		plt.ylabel("Speed")
+		plt.xlabel("Distance")
+		plt.title("Location Statuses of Heatmiser Data")
+		plt.show()
+
 
 	# Displays cluster visualization
 	def getClusterVisualization(self):
-		colors = self.k*["g","r","c","b","y","m","w"]
+		colors = self.k*["g","r","c","b","y","m"]
 		
 		# Display centroids and corresponding points
 		for index in self.centroids:
@@ -476,10 +513,14 @@ def determineOptimalK(data):
 	plt.show()
 
 # Shows plot of all heatmiser in data colored by their respective OSHA status 
-def getOSHAStatusPlot(data):
+# 1 shows OSHA, 2 shows location type
+def getStatusPlot(data, feature):
 	plt.plot() # create a new plot
 	kModel = KMeansClustering(1)
-	kModel.getPointVisualization(data)
+	if feature == 1:
+		kModel.getPointVisualizationOSHA(data)
+	elif feature == 2:
+		kModel.getPointVisualizationLocation(data)
 
 def main():
 	# dt = DecisionTree()
@@ -503,9 +544,13 @@ def main():
 	# 	sys.exit()
     
 	data = dp.getDataList()
-	kCluster = KMeansClustering(3)
+	kCluster = KMeansClustering(2)
 	kCluster.run(data)
 
+	# Uncomment below to get either OSHA (1) or location (2) plot
+	# getStatusPlot(data, 2)
+
+	# Uncomment below to run elbow method
 	#determineOptimalK(data)
 
 if __name__ == '__main__':
