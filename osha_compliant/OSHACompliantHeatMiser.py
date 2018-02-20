@@ -15,13 +15,14 @@ Implementation of k-means clustering using distance, speed
 Using a library: https://pythonprogramminglanguage.com/kmeans-elbow-method/
 '''
 class KMeansClustering:
-	def __init__(self, k=2, maxIter=10):
+	def __init__(self, k=2, maxIter=10, fileName="osha_heatmiser_trial_output_kmeans"):
 		self.k = k # number of clusters
 		self.centroids = {}
 		self.classification = {} # dictionary containing key of a dist, speed point and value of cluster index it belongs to
 		self.maxIter = maxIter
 		self.hasUpdated = True
 		self.oshaStatus = {}
+		self.fileName = fileName
 
 	# Converts heatmiser arrays into a numpy array of distance, speed values
 	# Gets heatmiser status.
@@ -117,7 +118,7 @@ class KMeansClustering:
 		# Assign training instance to cluster with closest centroid
 		count = 0
 		self.hasUpdated = False
-		reFitted = False
+
 		for heatmiser in points:
 			count += 1
 			# Print to one line dynamically
@@ -127,24 +128,28 @@ class KMeansClustering:
 			key = self.pointToKey(heatmiser)
 			# If initializing, assign point to nearest cluster
 			if first:
-				reFitted = True # automatically reaverage all clusters
-				closestCenter = None
+				self.hasUpdated = True # indicates update will happen
+				closestCluster = None
 				minDist = float('inf')
-				index = None
 
 				# Check distance to each centroid
 				for centroidIndex in range(self.k):
 					centroid = self.centroids[centroidIndex]
 					dist = self.calcEuclideanDistance(centroid, heatmiser)
 
-					# Update classification if smaller distance
+					# Update smaller distance
 					if dist < minDist:
-						self.classification[key] = centroidIndex
+						closestCluster = centroidIndex
 						minDist = dist
+
+				# Update centroid average
+				self.classification[key] = closestCluster
+				self.updateClusterCentroid(closestCluster)
 
 			# See if point is closer to another cluster
 			else:
 				currCluster = self.classification[key]
+				newCluster = None
 				closestDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
 
 				for centroidIndex in range(self.k):
@@ -153,16 +158,17 @@ class KMeansClustering:
 						centroid = self.centroids[centroidIndex]
 						dist = self.calcEuclideanDistance(centroid, heatmiser)
 
-						# Update classification if smaller distance found
+						# Smaller distance found
 						if dist < closestDist:
-							self.classification[key] = centroidIndex
-							reFitted = True # indicates update will occur
+							newCluster = centroidIndex
+							closestDist = dist
 
-		# Update average if re-classification detected
-		if (reFitted is True):
-			self.hasUpdated = True # indicate update occurred
-			for centroidIndex in range(self.k):
-				self.updateClusterCentroid(centroidIndex)
+				# Update classification if smaller distance found
+				if newCluster is not None:
+					self.classification[key] = newCluster
+					self.hasUpdated = True # indicate update occurred
+					self.updateClusterCentroid(currCluster) # remove point
+					self.updateClusterCentroid(newCluster) # add point
 
 
 	# Get error sum of squares of a given centroid, sum of square differences between
@@ -174,18 +180,23 @@ class KMeansClustering:
 			# Get error of points only in given cluster
 			if self.classification[key] == index:
 				point = self.keyToPoint(key)
+				# Difference is squared distance
 				diff = ((centroid[0] - point[0])**2) + ((centroid[1] - point[1])**2)
 				currSum += diff
 
 		return currSum
 
 	def getFinalStatsKMeans(self):
-		res = []
+		lstSSE = []
 		totals = {}
 		print("\n")
+
+		f = open(self.fileName, "a")
+		f.write("Final cluster data: \n")
+
 		for i in range(self.k):
 			SSE = self.getSSE(i)
-			res.append(SSE)
+			lstSSE.append(SSE)
 
 			# Get total of how many osha instances are in a cluster
 			status = {}
@@ -203,18 +214,25 @@ class KMeansClustering:
 				else:
 					totals[osha] += 1
 
+			strStatus = ", ".join([(s + ": " + str(status[s])) for s in status]) # get string list format
+			res = (
+				"*** --- *** \n" 
+			+ ("Cluster " + (str(i))) + "\n"
+			+ ("Center: " + ", ".join([str(p) for p in self.centroids[i]])) + "\n"
+			+ ("OSHA statuses: " + strStatus) + "\n"
+			+ ("SSE: " + str(SSE)) + "\n"
+			+  "\n*** --- *** \n"
+			)
 
-			print("*** --- *** \n")
-			print("Cluster " + str(i))
-			print("Center: ", self.centroids[i])
-			#print("Points: ", points)
-			print("OSHA Status: ", status)
-			print("SSE: ", str(SSE))
-			print("\n *** --- *** \n")
+			f.write(res)
+			print(res)
 
-		print("Totals", totals)
+		strTotals = ", ".join([(s + ": " + str(totals[s])) for s in totals])
+		f.write(("OSHA status totals: " + strTotals))
+		print("OSHA status totals: ", strTotals)
+		f.close()
 
-		return res
+		return lstSSE
 
 	# Displays cluster visualization
 	def getClusterVisualization(self, points):
@@ -435,6 +453,28 @@ def main():
 	# data = dp.getDataJSON()
 	# info = dt.setInformationGain(data)
 	
+	# Create text file to write to. Overwrites previous trial
+	fileName = ""
+
+	searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:" 
+		+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
+	if (searchType == "1"):
+		print("Decision tree approach selected!")
+		fileName = "osha_heatmiser_trial_output_dt"
+		search = 0
+	elif (searchType == "2"):
+		print("K means clustering approach selected!")
+		fileName = "osha_heatmiser_trial_output_kmeans"
+		search = 1
+	elif (searchType == "3"):
+		print("Shutting down...")
+	else:
+		print("Sorry, that was an incorrect command. Shutting down...")
+		sys.exit()
+    
+	f = open(fileName, "w")
+	f.close()
+
 	data = dp.getDataList()
 	kCluster = KMeansClustering(2)
 	kCluster.run(data)
