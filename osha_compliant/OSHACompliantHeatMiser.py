@@ -6,7 +6,7 @@ Assignment #3
 import DataParser as dp
 import sys
 import math
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import random
 
@@ -14,6 +14,8 @@ import random
 Implementation of k-means clustering using distance, speed
 Using a library: https://pythonprogramminglanguage.com/kmeans-elbow-method/
 '''
+
+
 class KMeansClustering:
 	def __init__(self, k=2, maxIter=10, fileName="osha_heatmiser_trial_output_kmeans"):
 		self.k = k # number of clusters
@@ -370,19 +372,87 @@ class KMeansClustering:
 		self.getFinalStatsKMeans()
 		print("Visualizing clusters...")
 		self.getClusterVisualization()
+    
+class Node:
+    def __init__(self):
+        self.type = None  # types: leaf, feature, label
+        self.label = ""
+        self.parentDecision = None
+        self.oldFeatures = []
+        self.parent = None
+        self.children = []
+        self.depth = 0
 
+    def setType(self, type):
+        self.type = type
+
+    def getType(self):
+        return self.type
+
+    def setLabel(self, label):
+        self.label = label
+
+    def getLabel(self):
+        return self.label
+
+    def setParentDecision(self, decision):
+        self.parentDecision = decision
+
+    def getParentDecision(self):
+        return self.parentDecision
+
+    def setOldFeatures(self, features):
+        self.oldFeatures = features
+
+    def appendOldFeatures(self, feature):
+        self.oldFeatures.append(feature)
+
+    def getOldFeatures(self):
+        return self.oldFeatures
+
+    def setParent(self, parent):
+        self.parent = parent
+
+    def getParent(self):
+        return self.parent
+
+    def setChildren(self, children):
+        self.children = children
+
+    def appendChild(self, child):
+        self.children.append(child)
+
+    def getChildren(self):
+        return self.children
+
+    def setDepth(self, depth):
+        self.depth = depth
+
+    def incrementDepth(self):
+        self.depth += 1
+
+    def getDepth(self):
+        return self.depth
 
 
 # Optimized HeatMiser class that adjusts humidity and temp to comfortable levels
 class DecisionTree:
     def __init__(self):
-        self.allInfoGain = {}
+        self.rootNode = None
+
+    def setRoot(self, root):
+        self.rootNode = root
+
+    def getRoot(self):
+        return self.rootNode
 
     '''
-        Helper function that gets counts of values for each feature
-    '''
-    def getFeatureTotals(self, data):
+		Helper function that gets counts of values for each feature
+	'''
+
+    def getFeatureTotals(self, data, node):
         totalsDict = {}
+
         # Iterate through each heatmiser
         for i in range(0, len(data['ID'])):
             # Iterate through each feature in heatmiser data
@@ -400,7 +470,7 @@ class DecisionTree:
                     totalsDict[feature][value] += 1
                     totalsDict[feature]['total'] += 1
 
-                elif (feature != 'ID'):
+                elif (feature != 'ID' and feature not in node.getOldFeatures()):
                     # Add variable if not in dictionary
                     if feature not in totalsDict:
                         totalsDict[feature] = {'total': 0}
@@ -420,12 +490,120 @@ class DecisionTree:
                     totalsDict[feature]['total'] += 1
                     totalsDict[feature][value]['osha_status'][complianceStatus] += 1
 
-        print(totalsDict)
+        # print(totalsDict)
+        # print("")
         return totalsDict
 
+    def print_tree(self, node, string):
+        nodes = node.getChildren().copy()
+        if (node.getType() == 'leaf'):
+            string += "\n Compliance Result: -> | " + node.getLabel() + " | <-\n"
+        else:
+            string += node.getType() + ": " + node.getLabel() + "--> "
+
+        while nodes:
+            child = nodes.pop()
+            self.print_tree(child, string)
+
+        if (node.getType() == 'leaf'):
+            print(string)
+
+    def start_tree(self, data):
+        root = Node()
+        self.setRoot(root)
+        root.setType('feature')
+
+        highestGain = self.setInformationGain(data, root)
+
+        root.setLabel(highestGain)
+
+        root.incrementDepth()
+        self.buildTree(data, root)
+
+    def buildTree(self, data, node):
+        labels = {}
+        labels["Speeding"] = ['Very Slow', 'Slow', 'Neutral', 'Fast', 'Very Fast']
+        labels["Distance"] = ['Very Close', 'Close', 'Neutral', 'Far', 'Very Far']
+        labels["Location"] = ['Office', 'Warehouse']
+
+        if (node.getType() == 'feature'):
+            for label in labels[node.getLabel()]:
+                child = Node()
+                node.appendChild(child)
+
+                child.setParent(node)
+                child.setType('label')
+                child.setLabel(label)
+                child.setDepth(node.getDepth())
+                child.incrementDepth()
+                child.setOldFeatures(node.getOldFeatures().copy())
+                child.appendOldFeatures(node.getLabel())
+                child.setParentDecision(node.getParentDecision())
+
+                isolatedData = self.isolate_label(data, node.getLabel(), label)
+
+                self.buildTree(isolatedData, child)
+
+        elif (node.getType() == 'label'):
+            highestGain = self.setInformationGain(data, node)
+
+            if highestGain == None:
+                return node
+
+            child = Node()
+            node.appendChild(child)
+
+            child.setParent(node)
+            type(child.getParent())
+            child.setLabel(highestGain)
+            child.setDepth(node.getDepth())
+            child.incrementDepth()
+            child.setOldFeatures(node.getOldFeatures().copy())
+            child.setParentDecision(node.getParentDecision())
+
+            if highestGain in ["Safe", "Compliant", "NonCompliant"]:
+                child.setType('leaf')
+                return child
+
+            else:
+                child.setType('feature')
+                self.buildTree(data, child)
+
+        return node
+
     '''
-    Helper function to calculate entropy
+	Returns data set containing only data with specific key label pair
+	'''
+
+    def isolate_label(self, data, key, label):
+        labelData = {}
+        ids = []
+        distances = []
+        speeds = []
+        locations = []
+        oshas = []
+        headers = ['ID', 'Distance', 'Speeding', 'Location', 'OSHA']
+
+        for i in range(0, len(data['ID'])):
+            if (data[key][i] == label):
+                ids.append(data['ID'][i])
+                distances.append(data['Distance'][i])
+                speeds.append(data['Speeding'][i])
+                locations.append(data['Location'][i])
+                oshas.append(data['OSHA'][i])
+
+        labelData[headers[0]] = ids
+        labelData[headers[1]] = distances
+        labelData[headers[2]] = speeds
+        labelData[headers[3]] = locations
+        labelData[headers[4]] = oshas
+
+        return labelData
+
     '''
+	Helper function to calculate entropy
+	'''
+
     def getFeatureEntropy(self, valueDict):
         entropy = 0
         # Get log sum
@@ -440,8 +618,9 @@ class DecisionTree:
         return entropy
 
     '''
-    Helper function to calculate class entropy
-    '''
+	Helper function to calculate class entropy
+	'''
+
     def getClassEntropy(self, classDict):
         entropy = 0
         # Get log sum
@@ -455,32 +634,74 @@ class DecisionTree:
 
         return entropy
 
-
-
     '''
-    Calculates information entropy of a feature
-    '''
+	Calculates information entropy of a feature
+	'''
+
     def getFeatureInfoEntropy(self, featureDict):
-        # print(featureDict)
         infoEntropy = 0
         # Iterate through each value of a feature
         for value in featureDict:
             if value == 'total':
                 continue
 
-            prob = featureDict[value]['total'] / featureDict['total'] # get probability
-            entropy = self.getFeatureEntropy(featureDict[value]) # get entropy of value
+            prob = featureDict[value]['total'] / featureDict['total']  # get probability
+            entropy = self.getFeatureEntropy(featureDict[value])  # get entropy of value
             infoEntropy += (prob * entropy)
 
         return infoEntropy
 
-    '''
-    Calculates information gain of all features
-    '''
-    def setInformationGain(self, data):
-        featureTotals = self.getFeatureTotals(data)
+    def get_max(self, featureTotals):
+        featureTotalsCopy = featureTotals['OSHA'].copy()
+        featureTotalsCopy.pop('total')
+        return max(featureTotalsCopy, key=lambda key: featureTotalsCopy[key])
 
-        classEntropy = self.getClassEntropy(featureTotals['OSHA'])
+    ''' 
+	If the tree doesn't end in a perfect leaf node, then create one by majority of OSHA label
+	'''
+
+    def setMajority(self, featureTotals, node):
+        maxGain = self.get_max(featureTotals)
+
+        child = Node()
+        child.setType('leaf')
+        node.appendChild(child)
+
+        child.setLabel(maxGain)
+        child.setParent(node)
+        return None
+
+    '''
+	Calculates information gain of all features
+	'''
+
+    def setInformationGain(self, data, node):
+        # print(node.getLabel())
+        allInfoGain = {}
+        featureTotals = self.getFeatureTotals(data, node)
+
+        if (len(featureTotals.keys()) == 1):
+            return self.setMajority(featureTotals, node)
+
+        if (featureTotals):
+            classEntropy = self.getClassEntropy(featureTotals['OSHA'])
+
+            if (classEntropy <= 0.0):
+                child = Node()
+                node.appendChild(child)
+
+                child.setType('leaf')
+                for key in featureTotals['OSHA'].keys():
+                    if key != 'total':
+                        child.setLabel(key)
+
+                child.setParent(node)
+                return None
+
+            elif (node.getType() == 'label'):
+                node.setParentDecision(self.get_max(featureTotals))
+        else:
+            return node.getParentDecision()
 
         for feature in featureTotals:
             # pass if OSHA
@@ -489,10 +710,260 @@ class DecisionTree:
 
             featureEntropy = self.getFeatureInfoEntropy(featureTotals[feature])
             informationGain = classEntropy - featureEntropy
+            allInfoGain[feature] = informationGain
 
-            self.allInfoGain[feature] = informationGain
+        maxGain = max(allInfoGain, key=lambda key: allInfoGain[key])
 
-        print(self.allInfoGain)
+        if (len(allInfoGain) == 1 and allInfoGain[maxGain] == 0.0):
+            return self.setMajority(featureTotals, node)
+
+        return maxGain
+
+    def predict(self, test_data, test_number, results):
+        curr = self.getRoot()
+
+        while (curr.getType() != 'leaf'):
+            if (curr.getType() == 'feature'):
+                if (len(curr.getChildren()) == 1):
+                    curr = curr.getChildren()[0]
+
+                else:
+                    for child in curr.getChildren():
+                        if (child.getLabel() == test_data[curr.getLabel()][test_number]):
+                            curr = child
+                            break
+
+            else:
+                curr = curr.getChildren()[0]
+
+        if (curr.getLabel() != test_data['OSHA'][test_number]):
+            # print("Predicted OSHA status of HeatMiser " + test_data['ID'][test_number] + " is: "
+            #       + curr.getLabel())
+            #
+            # print("Actual OSHA status is: " + test_data['OSHA'][test_number] + "\n")
+
+            if (test_data['OSHA'][test_number] == 'Compliant'):
+                results["Errors"]["Compliant"] += 1
+
+            elif (test_data['OSHA'][test_number] == 'NonCompliant'):
+                results["Errors"]["NonCompliant"] += 1
+
+            elif (test_data['OSHA'][test_number] == 'Safe'):
+                results["Errors"]["Safe"] += 1
+
+            results["Errors"]["Total"] += 1
+
+        if (test_data['OSHA'][test_number] == 'Compliant'):
+            results["Totals"]["Compliant"] += 1
+
+        elif (test_data['OSHA'][test_number] == 'NonCompliant'):
+            results["Totals"]["NonCompliant"] += 1
+
+        elif (test_data['OSHA'][test_number] == 'Safe'):
+            results["Totals"]["Safe"] += 1
+
+        return results
+
+    '''
+	Make predictions for the OSHA status of each HeatMiser in the test data, based on decision tree
+	'''
+
+    def make_all_predictions(self, test_data):
+        results = {}
+        results["Totals"] = {}
+        results["Errors"] = {}
+
+        results["Totals"]["Compliant"] = 0
+        results["Totals"]["Safe"] = 0
+        results["Totals"]["NonCompliant"] = 0
+
+        results["Errors"]["Compliant"] = 0
+        results["Errors"]["Safe"] = 0
+        results["Errors"]["NonCompliant"] = 0
+        results["Errors"]["Total"] = 0
+
+        for i in range(400):
+            results = self.predict(test_data, i, results)
+
+        # print(str(results["Errors"]["Total"]) + " wrong out of 4000 tests, or accuracy of "
+        #       + str(((400 - results["Errors"]["Total"]) / 400) * 100) + "%.\n")
+
+        return results
+
+
+'''
+Helper function to split into folds for cross validation
+'''
+
+
+def split_into_folds(data):
+    foldLabels = ["Fold One", "Fold Two", "Fold Three", "Fold Four", "Fold Five",
+                  "Fold Six", "Fold Seven", "Fold Eight", "Fold Nine", "Fold Ten"]
+    folds = {}
+    counter = 0
+    start = 0
+    end = 400
+
+    while (counter < 10):
+        newData = {}
+        ids = []
+        ids = data['ID'][start:end]
+        newData['ID'] = ids
+
+        distances = []
+        distances = data['Distance'][start:end]
+        newData['Distance'] = distances
+
+        speeds = []
+        speeds = data['Speeding'][start:end]
+        newData['Speeding'] = speeds
+
+        locations = []
+        locations = data['Location'][start:end]
+        newData['Location'] = locations
+
+        oshas = []
+        oshas = data['OSHA'][start:end]
+        newData['OSHA'] = oshas
+
+        folds[foldLabels[counter]] = newData
+
+        counter += 1
+        start += 400
+        end += 400
+
+    # print(folds)
+    return folds
+
+
+def isolate_training_data(data, testing_fold):
+    training_data = {}
+    ids = []
+    distances = []
+    speeds = []
+    locations = []
+    oshas = []
+
+    start = 0
+    end = 400
+    first = True
+
+    for i in range(10):
+        if (i != testing_fold):
+            if (first):
+                distances = data['Distance'][start:end]
+                speeds = data['Speeding'][start:end]
+                first = False
+            else:
+                ids = ids + data['ID'][start:end]
+                distances = distances + data['Distance'][start:end]
+            speeds = speeds + data['Speeding'][start:end]
+            locations = locations + data['Location'][start:end]
+            oshas = oshas + data['OSHA'][start:end]
+
+        start += 400
+        end += 400
+
+    training_data['ID'] = ids
+    training_data['Distance'] = distances
+    training_data['Speeding'] = speeds
+    training_data['Location'] = locations
+    training_data['OSHA'] = oshas
+
+    # print(training_data)
+    return training_data
+
+
+def isolate_testing_data(data, test_start, test_end):
+    testing_data = {}
+
+    testing_data['ID'] = data['ID'][test_start:test_end]
+    testing_data['Distance'] = data['Distance'][test_start:test_end]
+    testing_data['Speeding'] = data['Speeding'][test_start:test_end]
+    testing_data['Location'] = data['Location'][test_start:test_end]
+    testing_data['OSHA'] = data['OSHA'][test_start:test_end]
+
+    # print(testing_data)
+    return testing_data
+
+
+def update_results(results, newResult):
+    results["Totals"]["Compliant"] += newResult["Totals"]["Compliant"]
+    results["Totals"]["NonCompliant"] += newResult["Totals"]["NonCompliant"]
+    results["Totals"]["Safe"] += newResult["Totals"]["Safe"]
+
+    results["Errors"]["Compliant"] += newResult["Errors"]["Compliant"]
+    results["Errors"]["NonCompliant"] += newResult["Errors"]["NonCompliant"]
+    results["Errors"]["Safe"] += newResult["Errors"]["Safe"]
+    results["Errors"]["Total"] += newResult["Errors"]["Total"]
+
+    return results
+
+
+'''
+Runs training and testing 10 times to ensure validity 
+'''
+
+
+def ten_fold_cross_validation(data):
+    # folds = dt.split_into_folds(data)
+    test_fold = 0
+    results = {}
+
+    results["Totals"] = {}
+    results["Errors"] = {}
+
+    results["Totals"]["Compliant"] = 0
+    results["Totals"]["Safe"] = 0
+    results["Totals"]["NonCompliant"] = 0
+
+    results["Errors"]["Compliant"] = 0
+    results["Errors"]["Safe"] = 0
+    results["Errors"]["NonCompliant"] = 0
+    results["Errors"]["Total"] = 0
+
+    for i in range(10):
+        # print("\n\n --------- START OF FOLD " + str(i) + " ---------\n")
+        dt = DecisionTree()
+
+        training_data = isolate_training_data(data, test_fold)
+        dt.start_tree(training_data)
+
+        # dt.print_tree(dt.getRoot(), "")
+
+        test_start = (0 + (400 * i))
+        test_end = (400 + (400 * i))
+        test_data = isolate_testing_data(data, test_start, test_end)
+
+        newResult = dt.make_all_predictions(test_data)
+
+        results = update_results(results, newResult)
+
+        test_fold += 1
+        # print("\n\n --------- END OF FOLD " + str(i) + " ---------\n")
+
+    print("Breakdown")
+    print("Compliant: Seen -> " + str(results["Totals"]["Compliant"]))
+    print("		Correctly Predicted -> " + str(results["Totals"]["Compliant"] - results["Errors"]["Compliant"]))
+    print("		Incorrectly Predicted -> " + str(results["Errors"]["Compliant"]))
+    print("		Accuracy -> " + str((results["Totals"]["Compliant"] - results["Errors"]["Compliant"])
+                                       / results["Totals"]["Compliant"] * 100) + "%\n")
+
+    print("NonCompliant: Seen -> " + str(results["Totals"]["NonCompliant"]))
+    print(
+        "		Correctly Predicted -> " + str(results["Totals"]["NonCompliant"] - results["Errors"]["NonCompliant"]))
+    print("		Incorrectly Predicted -> " + str(results["Errors"]["NonCompliant"]))
+    print("		Accuracy -> " + str((results["Totals"]["NonCompliant"] - results["Errors"]["NonCompliant"])
+                                       / results["Totals"]["NonCompliant"] * 100) + "%\n")
+
+    print("Safe: Seen -> " + str(results["Totals"]["Safe"]))
+    print("		Correctly Predicted -> " + str(results["Totals"]["Safe"] - results["Errors"]["Safe"]))
+    print("		Incorrectly Predicted -> " + str(results["Errors"]["Safe"]))
+    print("		Accuracy -> " + str((results["Totals"]["Safe"] - results["Errors"]["Safe"])
+                                       / results["Totals"]["Safe"] * 100) + "%\n")
+
+    print("Overall Accuracy -> " + str((4000 - results["Errors"]["Total"]) / 4000 * 100) + "%")
+
 
 # Function to determine optimal K
 def determineOptimalK(data):
@@ -523,9 +994,9 @@ def getStatusPlot(data, feature):
 		kModel.getPointVisualizationLocation(data)
 
 def main():
-	# dt = DecisionTree()
-	# data = dp.getDataJSON()
-	# info = dt.setInformationGain(data)
+    dt = DecisionTree()
+    data = dp.getDataArrays()
+    ten_fold_cross_validation(data)
 	
 	# searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:" 
 	# 	+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
