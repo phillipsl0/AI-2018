@@ -22,7 +22,7 @@ class KMeansClustering:
 		self.maxIter = maxIter
 		self.hasUpdated = True
 		self.oshaStatus = {}
-		self.fileName = fileName
+		self.fileName = (fileName + str(k))
 
 	# Converts heatmiser arrays into a numpy array of distance, speed values
 	# Gets heatmiser status.
@@ -191,6 +191,7 @@ class KMeansClustering:
 		totals = {}
 		print("\n")
 
+		# Create text file to write to. Overwrites same named file
 		f = open(self.fileName, "a")
 		f.write("Final cluster data: \n")
 
@@ -217,11 +218,11 @@ class KMeansClustering:
 			strStatus = ", ".join([(s + ": " + str(status[s])) for s in status]) # get string list format
 			res = (
 				"*** --- *** \n" 
-			+ ("Cluster " + (str(i))) + "\n"
+			+ ("Cluster " + (str(i+1))) + "\n"
 			+ ("Center: " + ", ".join([str(p) for p in self.centroids[i]])) + "\n"
 			+ ("OSHA statuses: " + strStatus) + "\n"
 			+ ("SSE: " + str(SSE)) + "\n"
-			+  "\n*** --- *** \n"
+			+  "*** --- *** \n"
 			)
 
 			f.write(res)
@@ -234,9 +235,32 @@ class KMeansClustering:
 
 		return lstSSE
 
+	# Displays points and their respective status
+	# Green = Compliant, red = NonCompliant, Cyan = Safe
+	def getPointVisualization(self, data):
+		print("Processing data...")
+		points = self.processData(data)
+
+		colors = ["g", "r", "c"]
+		statuses = ["Compliant", "NonCompliant", "Safe"]
+
+		
+		print("Visualizing data...")
+		for heatmiser in points:
+			status = self.oshaStatus[self.pointToKey(heatmiser)]
+			color = colors[statuses.index(status)]
+			plt.scatter(heatmiser[0], heatmiser[1], marker="o", color=color, s=50, linewidths=5)
+
+		print("Visulization displayed.")
+		plt.ylabel("Speed")
+		plt.xlabel("Distance")
+		plt.title("OSHA Statuses of Heatmiser Data")
+		plt.show()
+
+
 	# Displays cluster visualization
-	def getClusterVisualization(self, points):
-		colors = ["g","r","c","b","y"]
+	def getClusterVisualization(self):
+		colors = self.k*["g","r","c","b","y","m","w"]
 		
 		# Display centroids and corresponding points
 		for index in self.centroids:
@@ -281,8 +305,12 @@ class KMeansClustering:
 		print("Processing data...")
 		X = self.processData(data)
 		print("Initializing clusters...")
-		# self.initClustersRandom(X) 		# initialize clusters randomly
-		self.initClustersFurthest(X) 	# initialize clusters based on distance
+		
+		# Initialize clusters based on distance if 2, else randomly
+		if self.k == 2:
+			self.initClustersFurthest(X) 	
+		else:
+			self.initClustersRandom(X)
 
 		print("Initial clusters: ")
 		print(self.centroids)
@@ -304,7 +332,7 @@ class KMeansClustering:
 		print("Final stats: ")
 		self.getFinalStatsKMeans()
 		print("Visualizing clusters...")
-		self.getClusterVisualization(X)
+		self.getClusterVisualization()
 
 
 
@@ -435,7 +463,7 @@ def determineOptimalK(data):
 	plt.plot()
 	distortions = []
 	# Display graph up to k = 10
-	K = range(1, 10)
+	K = range(1, 11)
 	for k in K:
 		kModel = KMeansClustering(k)
 		distortion = kModel.getDistorian(data)
@@ -447,36 +475,35 @@ def determineOptimalK(data):
 	plt.title('The Elbow Method showing the optimal k')
 	plt.show()
 
+# Shows plot of all heatmiser in data colored by their respective OSHA status 
+def getOSHAStatusPlot(data):
+	plt.plot() # create a new plot
+	kModel = KMeansClustering(1)
+	kModel.getPointVisualization(data)
 
 def main():
 	# dt = DecisionTree()
 	# data = dp.getDataJSON()
 	# info = dt.setInformationGain(data)
 	
-	# Create text file to write to. Overwrites previous trial
-	fileName = ""
-
-	searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:" 
-		+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
-	if (searchType == "1"):
-		print("Decision tree approach selected!")
-		fileName = "osha_heatmiser_trial_output_dt"
-		search = 0
-	elif (searchType == "2"):
-		print("K means clustering approach selected!")
-		fileName = "osha_heatmiser_trial_output_kmeans"
-		search = 1
-	elif (searchType == "3"):
-		print("Shutting down...")
-	else:
-		print("Sorry, that was an incorrect command. Shutting down...")
-		sys.exit()
+	# searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:" 
+	# 	+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
+	# if (searchType == "1"):
+	# 	print("Decision tree approach selected!")
+	# 	fileName = "osha_heatmiser_trial_output_dt"
+	# 	search = 0
+	# elif (searchType == "2"):
+	# 	print("K means clustering approach selected!")
+	# 	fileName = "osha_heatmiser_trial_output_kmeans"
+	# 	search = 1
+	# elif (searchType == "3"):
+	# 	print("Shutting down...")
+	# else:
+	# 	print("Sorry, that was an incorrect command. Shutting down...")
+	# 	sys.exit()
     
-	f = open(fileName, "w")
-	f.close()
-
 	data = dp.getDataList()
-	kCluster = KMeansClustering(2)
+	kCluster = KMeansClustering(3)
 	kCluster.run(data)
 
 	#determineOptimalK(data)
