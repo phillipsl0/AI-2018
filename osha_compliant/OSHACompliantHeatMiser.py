@@ -6,7 +6,7 @@ Assignment #3
 import DataParser as dp
 import sys
 import math
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import random
 
@@ -14,280 +14,349 @@ import random
 Implementation of k-means clustering using distance, speed
 Using a library: https://pythonprogramminglanguage.com/kmeans-elbow-method/
 '''
+
+
 class KMeansClustering:
-	def __init__(self, k=2, maxIter=10):
-		self.k = k # number of clusters
-		self.centroids = {}
-		self.classification = {} # dictionary containing key of a dist, speed point and value of cluster index it belongs to
-		self.maxIter = maxIter
-		self.hasUpdated = True
+    def __init__(self, k=2, maxIter=10):
+        self.k = k  # number of clusters
+        self.centroids = {}
+        self.classification = {}  # dictionary containing key of a dist, speed point and value of cluster index it belongs to
+        self.maxIter = maxIter
+        self.hasUpdated = True
 
-	# Converts heatmiser arrays into a numpy array of distance, speed values
-	def processData(self, data):
-		arr = []
-		for heatmiser in data:
-			point = [float(heatmiser[1]), float(heatmiser[2])]
-			arr.append(point)
-		# X = np.array(arr)
-		return arr
+    # Converts heatmiser arrays into a numpy array of distance, speed values
+    def processData(self, data):
+        arr = []
+        for heatmiser in data:
+            point = [float(heatmiser[1]), float(heatmiser[2])]
+            arr.append(point)
+        # X = np.array(arr)
+        return arr
 
-	def calcEuclideanDistance(self, p, q):
-		pX = p[0]
-		pY = p[1]
+    def calcEuclideanDistance(self, p, q):
+        pX = p[0]
+        pY = p[1]
 
-		qX = q[0]
-		qY = q[1]
+        qX = q[0]
+        qY = q[1]
 
-		return math.sqrt(((qX - pX)**2) + ((qY - pY)**2))
+        return math.sqrt(((qX - pX) ** 2) + ((qY - pY) ** 2))
 
-	# Initialize clusters based on points furthest away in data
-	# ONLY WORKS FOR K = 2
-	def initClustersFurthest(self, points):
-		maxDist = 0
-		point = None
+    # Initialize clusters based on points furthest away in data
+    # ONLY WORKS FOR K = 2
+    def initClustersFurthest(self, points):
+        maxDist = 0
+        point = None
 
-		# Iterate through points
-		for h in range(len(points)):
-			j = points[h]
-			for i in range(len(points)):
-				# Skip if same point
-				k = points[i]
-				if i == h:
-					continue
+        # Iterate through points
+        for h in range(len(points)):
+            j = points[h]
+            for i in range(len(points)):
+                # Skip if same point
+                k = points[i]
+                if i == h:
+                    continue
 
-				dist = self.calcEuclideanDistance(j, k)
+                dist = self.calcEuclideanDistance(j, k)
 
-				# Found point further away
-				if dist > maxDist:
-					maxDist = dist
+                # Found point further away
+                if dist > maxDist:
+                    maxDist = dist
 
-					# Assign to centroids
-					self.centroids[0] = j
-					self.classification[self.pointToKey(j)] = 0
+                    # Assign to centroids
+                    self.centroids[0] = j
+                    self.classification[self.pointToKey(j)] = 0
 
-					self.centroids[1] = k
-					self.classification[self.pointToKey(k)] = 1
-					self.k = 2
+                    self.centroids[1] = k
+                    self.classification[self.pointToKey(k)] = 1
+                    self.k = 2
 
-	# Initialize clusters randomly
-	def initClustersRandom(self, points):
-		# Randomly choose k points from data
-		randPoints = random.sample(points, self.k)
+    # Initialize clusters randomly
+    def initClustersRandom(self, points):
+        # Randomly choose k points from data
+        randPoints = random.sample(points, self.k)
 
-		# Initialize cluster centers as points
-		for i in range(self.k):
-			point = randPoints[i]
-			self.centroids[i] = point
-			self.classification[self.pointToKey(point)] = i
+        # Initialize cluster centers as points
+        for i in range(self.k):
+            point = randPoints[i]
+            self.centroids[i] = point
+            self.classification[self.pointToKey(point)] = i
+
+    # Helper function that converts point to string
+    def pointToKey(self, point):
+        strPoint = [str(val) for val in point]
+        key = ','.join(strPoint)
+        return key
+
+    # Helper function that converts string to array
+    # Ex. "9.0,4.57" --> [9.0, 4.57]
+    def keyToPoint(self, key):
+        strPoint = key.split(",")
+        arr = [float(strPoint[0]), float(strPoint[1])]
+        return arr
+
+    # Update average of given centroid
+    def updateClusterCentroid(self, index):
+        total = 0
+        sumX = 0
+        sumY = 0
+        for heatmiser in self.classification:
+            if self.classification[heatmiser] == index:
+                sumX += self.keyToPoint(heatmiser)[0]
+                sumY += self.keyToPoint(heatmiser)[1]
+                total += 1
+
+        newX = sumX / total
+        newY = sumY / total
+        self.centroids[index] = [newX, newY]
+
+    # Fit points to appropriate clusters
+    def fit(self, points, first):
+        # Assign training instance to cluster with closest centroid
+        count = 0
+        self.hasUpdated = False
+        for heatmiser in points:
+            count += 1
+            # Print to one line dynamically
+            sys.stdout.write("Fitting point " + str(count) + " out of " + str(
+                len(points)) + "                                                \r", )
+            sys.stdout.flush()
+
+            key = self.pointToKey(heatmiser)
+            # If initializing, assign point to nearest cluster
+            if first:
+                closestCenter = None
+                minDist = float('inf')
+                index = None
+
+                # Check distance to each centroid
+                for centroidIndex in range(self.k):
+                    centroid = self.centroids[centroidIndex]
+                    dist = self.calcEuclideanDistance(centroid, heatmiser)
+
+                    # Update classification if smaller distance
+                    if dist < minDist:
+                        self.classification[key] = centroidIndex
+                        minDist = dist
+
+                # Update cluster's centroid as average of all members
+                self.updateClusterCentroid(self.classification[key])
+                self.hasUpdated = True
+
+            # See if point is closer to another cluster
+            else:
+                currCluster = self.classification[key]
+                oldDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
+                closestDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
+                closerCluster = None
+
+                for centroidIndex in range(self.k):
+                    # Skip if same cluster
+                    if centroidIndex != currCluster:
+                        centroid = self.centroids[centroidIndex]
+                        dist = self.calcEuclideanDistance(centroid, heatmiser)
+
+                        # print("Comparing current classified cluster of " + str(currCluster) + " with distance of " + str(oldDist) + " to "+ str(centroidIndex) + " with distance of " + str(dist))
+
+                        # Update classification if smaller distance found
+                        if dist < closestDist:
+                            closestDist = dist
+                            closerCluster = centroidIndex
+
+                        # Update average if new classification
+                        if closerCluster is not None:
+                            # print("Found a closer cluster!")
+                            # print("Was with cluster " + str(currCluster) + " with distance of " + str(oldDist) + ". Now with "+ str(closerCluster) + " with distance of " + str(closestDist))
+
+                            self.classification[key] = closerCluster
+                            self.updateClusterCentroid(closerCluster)  # add point
+                            self.updateClusterCentroid(currCluster)  # remove point
+                            self.hasUpdated = True  # indicate update occurred
+                            # UDPATE WITH EACH MOVE OR AFTER ALL MOVES???
+
+    # Get error sum of squares of a given centroid, sum of square differences between
+    # each observation and its group's mean
+    def getSSE(self, index):
+        currSum = 0
+        centroid = self.centroids[index]
+        for key in self.classification:
+            # Get error of points only in given cluster
+            if self.classification[key] == index:
+                point = self.keyToPoint(key)
+                diff = ((centroid[0] - point[0]) ** 2) + ((centroid[1] - point[1]) ** 2)
+                currSum += diff
+
+        return currSum
+
+    def getFinalStatsKMeans(self):
+        res = []
+        for i in range(self.k):
+            SSE = self.getSSE(i)
+            res.append(SSE)
+
+            points = [key for key in self.classification if self.classification[key] == i]
+
+            print("\n *** --- *** \n")
+            print("Cluser " + str(i))
+            print("Center: ", self.centroids[i])
+            # print("Points: ", points)
+            print("SSE: ", str(SSE))
+            print("\n *** --- *** \n")
+
+        return res
+
+    # Displays cluster visualization
+    def getClusterVisualization(self, points):
+        colors = ["g", "r", "c", "b", "y"]
+
+        # Display centroids and corresponding points
+        for index in self.centroids:
+            color = colors[index]
+            centroid = self.centroids[index]
+            # plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
+
+            # Display points
+            for heatmiser in self.classification:
+                if self.classification[heatmiser] == index:
+                    point = self.keyToPoint(heatmiser)
+                    plt.scatter(point[0], point[1], marker="o", color=color, s=150, linewidths=5)
+            plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
+
+        print("Visualization displayed.")
+        plt.ylabel("Speed")
+        plt.xlabel("Distance")
+        plt.title("K Means Clustering of Heatmiser Data")
+        plt.show()
+
+    def getDistorian(self, data):
+        print("Processing data...")
+        X = self.processData(data)
+        print("Initializing clusters...")
+        self.initClustersRandom(X)
+        print("Fitting points...")
+
+        # Restrict iterations based on hard-coded data
+        first = True  # indicates initialization
+        i = 0
+        while self.hasUpdated and (i < self.maxIter):
+            i += 1
+            # Print to one line dynamically
+            print("On iteration " + str(i) + " out of " + str(self.maxIter) + "                       ")
+            self.fit(X, first)
+            first = False
+
+        distortion = sum(self.getFinalStatsKMeans())
+        return distortion
+
+    def run(self, data):
+        print("Processing data...")
+        X = self.processData(data)
+        print("Initializing clusters...")
+        self.initClustersRandom(X)
+
+        print("Initial clusters: ")
+        print(self.centroids)
+        print("Fitting points...")
+
+        # Restrict iterations based on hard-coded data
+        first = True  # indicates initialization
+        i = 0
+        while self.hasUpdated and (i < self.maxIter):
+            i += 1
+            # Print to one line dynamically
+            print("On iteration " + str(i) + " out of " + str(self.maxIter))
+            self.fit(X, first)
+            first = False
+            print("")
+            print("Updated clusters: ")
+            print(self.centroids)
+
+        print("Final stats: ")
+        self.getFinalStatsKMeans()
+        print("Visualizing clusters...")
+        self.getClusterVisualization(X)
 
 
-	# Helper function that converts point to string
-	def pointToKey(self, point):
-		strPoint = [str(val) for val in point]
-		key = ','.join(strPoint)
-		return key
+class Node:
+    def __init__(self):
+        self.type = None  # types: leaf, feature, label
+        self.label = ""
+        self.parentDecision = None
+        self.oldFeatures = []
+        self.parent = None
+        self.children = []
+        self.depth = 0
 
-	# Helper function that converts string to array
-	# Ex. "9.0,4.57" --> [9.0, 4.57]
-	def keyToPoint(self, key):
-		strPoint = key.split(",")
-		arr = [float(strPoint[0]), float(strPoint[1])]
-		return arr
+    def setType(self, type):
+        self.type = type
 
-	# Update average of given centroid
-	def updateClusterCentroid(self, index):
-		total = 0
-		sumX = 0
-		sumY = 0
-		for heatmiser in self.classification:
-			if self.classification[heatmiser] == index:
-				sumX += self.keyToPoint(heatmiser)[0]
-				sumY += self.keyToPoint(heatmiser)[1]
-				total += 1
+    def getType(self):
+        return self.type
 
-		newX = sumX / total
-		newY = sumY / total
-		self.centroids[index] = [newX, newY]
+    def setLabel(self, label):
+        self.label = label
 
+    def getLabel(self):
+        return self.label
 
-	# Fit points to appropriate clusters
-	def fit(self, points, first):
-		# Assign training instance to cluster with closest centroid
-		count = 0
-		self.hasUpdated = False
-		for heatmiser in points:
-			count += 1
-			# Print to one line dynamically
-			sys.stdout.write("Fitting point " + str(count) + " out of " + str(len(points)) + "                                                \r",)
-			sys.stdout.flush()
+    def setParentDecision(self, decision):
+        self.parentDecision = decision
 
-			key = self.pointToKey(heatmiser)
-			# If initializing, assign point to nearest cluster
-			if first:
-				closestCenter = None
-				minDist = float('inf')
-				index = None
+    def getParentDecision(self):
+        return self.parentDecision
 
-				# Check distance to each centroid
-				for centroidIndex in range(self.k):
-					centroid = self.centroids[centroidIndex]
-					dist = self.calcEuclideanDistance(centroid, heatmiser)
+    def setOldFeatures(self, features):
+        self.oldFeatures = features
 
-					# Update classification if smaller distance
-					if dist < minDist:
-						self.classification[key] = centroidIndex
-						minDist = dist
+    def appendOldFeatures(self, feature):
+        self.oldFeatures.append(feature)
 
-				# Update cluster's centroid as average of all members
-				self.updateClusterCentroid(self.classification[key])
-				self.hasUpdated = True
+    def getOldFeatures(self):
+        return self.oldFeatures
 
-			# See if point is closer to another cluster
-			else:
-				currCluster = self.classification[key]
-				oldDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
-				closestDist = self.calcEuclideanDistance(heatmiser, self.centroids[currCluster])
-				closerCluster = None
+    def setParent(self, parent):
+        self.parent = parent
 
-				for centroidIndex in range(self.k):
-					# Skip if same cluster
-					if centroidIndex != currCluster:
-						centroid = self.centroids[centroidIndex]
-						dist = self.calcEuclideanDistance(centroid, heatmiser)
+    def getParent(self):
+        return self.parent
 
-						# print("Comparing current classified cluster of " + str(currCluster) + " with distance of " + str(oldDist) + " to "+ str(centroidIndex) + " with distance of " + str(dist))
+    def setChildren(self, children):
+        self.children = children
 
-						# Update classification if smaller distance found
-						if dist < closestDist:
-							closestDist = dist
-							closerCluster = centroidIndex
+    def appendChild(self, child):
+        self.children.append(child)
 
-						# Update average if new classification
-						if closerCluster is not None:
-							
-							# print("Found a closer cluster!")
-							# print("Was with cluster " + str(currCluster) + " with distance of " + str(oldDist) + ". Now with "+ str(closerCluster) + " with distance of " + str(closestDist))
-							
-							self.classification[key] = closerCluster
-							self.updateClusterCentroid(closerCluster) # add point
-							self.updateClusterCentroid(currCluster) # remove point
-							self.hasUpdated = True # indicate update occurred
-							# UDPATE WITH EACH MOVE OR AFTER ALL MOVES???
+    def getChildren(self):
+        return self.children
 
-	# Get error sum of squares of a given centroid, sum of square differences between
-	# each observation and its group's mean
-	def getSSE(self, index):
-		currSum = 0
-		centroid = self.centroids[index]
-		for key in self.classification:
-			# Get error of points only in given cluster
-			if self.classification[key] == index:
-				point = self.keyToPoint(key)
-				diff = ((centroid[0] - point[0])**2) + ((centroid[1] - point[1])**2)
-				currSum += diff
+    def setDepth(self, depth):
+        self.depth = depth
 
-		return currSum
+    def incrementDepth(self):
+        self.depth += 1
 
-	def getFinalStatsKMeans(self):
-		res = []
-		for i in range(self.k):
-			SSE = self.getSSE(i)
-			res.append(SSE)
-
-			points = [key for key in self.classification if self.classification[key] == i]
-
-			print("\n *** --- *** \n")
-			print("Cluser " + str(i))
-			print("Center: ", self.centroids[i])
-			#print("Points: ", points)
-			print("SSE: ", str(SSE))
-			print("\n *** --- *** \n")
-
-		return res
-
-	# Displays cluster visualization
-	def getClusterVisualization(self, points):
-		colors = ["g","r","c","b","y"]
-		
-		# Display centroids and corresponding points
-		for index in self.centroids:
-			color = colors[index]
-			centroid = self.centroids[index]
-			#plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
-
-			# Display points
-			for heatmiser in self.classification:
-				if self.classification[heatmiser] == index:
-					point = self.keyToPoint(heatmiser)
-					plt.scatter(point[0], point[1], marker="o", color=color, s=150, linewidths=5)
-			plt.scatter(centroid[0], centroid[1], s=150, marker="x", color="k", linewidths=5)
-		
-		print("Visualization displayed.")
-		plt.ylabel("Speed")
-		plt.xlabel("Distance")
-		plt.title("K Means Clustering of Heatmiser Data")
-		plt.show()
-
-	def getDistorian(self, data):
-		print("Processing data...")
-		X = self.processData(data)
-		print("Initializing clusters...")
-		self.initClustersRandom(X)
-		print("Fitting points...")
-		
-		# Restrict iterations based on hard-coded data
-		first = True # indicates initialization
-		i = 0
-		while self.hasUpdated and (i < self.maxIter):
-			i += 1
-			# Print to one line dynamically
-			print("On iteration " + str(i) + " out of " + str(self.maxIter) + "                       ")
-			self.fit(X, first)
-			first = False 
-
-		distortion = sum(self.getFinalStatsKMeans())
-		return distortion
-
-	def run(self, data):
-		print("Processing data...")
-		X = self.processData(data)
-		print("Initializing clusters...")
-		self.initClustersRandom(X)
-
-		print("Initial clusters: ")
-		print(self.centroids)
-		print("Fitting points...")
-		
-		# Restrict iterations based on hard-coded data
-		first = True # indicates initialization
-		i = 0
-		while self.hasUpdated and (i < self.maxIter):
-			i += 1
-			# Print to one line dynamically
-			print("On iteration " + str(i) + " out of " + str(self.maxIter))
-			self.fit(X, first)
-			first = False 
-			print("")
-			print("Updated clusters: ")
-			print(self.centroids)
-
-		print("Final stats: ")
-		self.getFinalStatsKMeans()
-		print("Visualizing clusters...")
-		self.getClusterVisualization(X)
-
+    def getDepth(self):
+        return self.depth
 
 
 # Optimized HeatMiser class that adjusts humidity and temp to comfortable levels
 class DecisionTree:
     def __init__(self):
-        self.allInfoGain = {}
+        self.rootNode = None
+
+    def setRoot(self, root):
+        self.rootNode = root
+
+    def getRoot(self):
+        return self.rootNode
 
     '''
-        Helper function that gets counts of values for each feature
-    '''
-    def getFeatureTotals(self, data):
+		Helper function that gets counts of values for each feature
+	'''
+
+    def getFeatureTotals(self, data, node):
         totalsDict = {}
+
         # Iterate through each heatmiser
         for i in range(0, len(data['ID'])):
             # Iterate through each feature in heatmiser data
@@ -305,7 +374,7 @@ class DecisionTree:
                     totalsDict[feature][value] += 1
                     totalsDict[feature]['total'] += 1
 
-                elif (feature != 'ID'):
+                elif (feature != 'ID' and feature not in node.getOldFeatures()):
                     # Add variable if not in dictionary
                     if feature not in totalsDict:
                         totalsDict[feature] = {'total': 0}
@@ -325,12 +394,120 @@ class DecisionTree:
                     totalsDict[feature]['total'] += 1
                     totalsDict[feature][value]['osha_status'][complianceStatus] += 1
 
-        print(totalsDict)
+        # print(totalsDict)
+        # print("")
         return totalsDict
 
+    def print_tree(self, node, string):
+        nodes = node.getChildren().copy()
+        if (node.getType() == 'leaf'):
+            string += "\n Compliance Result: -> | " + node.getLabel() + " | <-\n"
+        else:
+            string += node.getType() + ": " + node.getLabel() + "--> "
+
+        while nodes:
+            child = nodes.pop()
+            self.print_tree(child, string)
+
+        if (node.getType() == 'leaf'):
+            print(string)
+
+    def start_tree(self, data):
+        root = Node()
+        self.setRoot(root)
+        root.setType('feature')
+
+        highestGain = self.setInformationGain(data, root)
+
+        root.setLabel(highestGain)
+
+        root.incrementDepth()
+        self.buildTree(data, root)
+
+    def buildTree(self, data, node):
+        labels = {}
+        labels["Speeding"] = ['Very Slow', 'Slow', 'Neutral', 'Fast', 'Very Fast']
+        labels["Distance"] = ['Very Close', 'Close', 'Neutral', 'Far', 'Very Far']
+        labels["Location"] = ['Office', 'Warehouse']
+
+        if (node.getType() == 'feature'):
+            for label in labels[node.getLabel()]:
+                child = Node()
+                node.appendChild(child)
+
+                child.setParent(node)
+                child.setType('label')
+                child.setLabel(label)
+                child.setDepth(node.getDepth())
+                child.incrementDepth()
+                child.setOldFeatures(node.getOldFeatures().copy())
+                child.appendOldFeatures(node.getLabel())
+                child.setParentDecision(node.getParentDecision())
+
+                isolatedData = self.isolate_label(data, node.getLabel(), label)
+
+                self.buildTree(isolatedData, child)
+
+        elif (node.getType() == 'label'):
+            highestGain = self.setInformationGain(data, node)
+
+            if highestGain == None:
+                return node
+
+            child = Node()
+            node.appendChild(child)
+
+            child.setParent(node)
+            type(child.getParent())
+            child.setLabel(highestGain)
+            child.setDepth(node.getDepth())
+            child.incrementDepth()
+            child.setOldFeatures(node.getOldFeatures().copy())
+            child.setParentDecision(node.getParentDecision())
+
+            if highestGain in ["Safe", "Compliant", "NonCompliant"]:
+                child.setType('leaf')
+                return child
+
+            else:
+                child.setType('feature')
+                self.buildTree(data, child)
+
+        return node
+
     '''
-    Helper function to calculate entropy
+	Returns data set containing only data with specific key label pair
+	'''
+
+    def isolate_label(self, data, key, label):
+        labelData = {}
+        ids = []
+        distances = []
+        speeds = []
+        locations = []
+        oshas = []
+        headers = ['ID', 'Distance', 'Speeding', 'Location', 'OSHA']
+
+        for i in range(0, len(data['ID'])):
+            if (data[key][i] == label):
+                ids.append(data['ID'][i])
+                distances.append(data['Distance'][i])
+                speeds.append(data['Speeding'][i])
+                locations.append(data['Location'][i])
+                oshas.append(data['OSHA'][i])
+
+        labelData[headers[0]] = ids
+        labelData[headers[1]] = distances
+        labelData[headers[2]] = speeds
+        labelData[headers[3]] = locations
+        labelData[headers[4]] = oshas
+
+        return labelData
+
     '''
+	Helper function to calculate entropy
+	'''
+
     def getFeatureEntropy(self, valueDict):
         entropy = 0
         # Get log sum
@@ -345,8 +522,9 @@ class DecisionTree:
         return entropy
 
     '''
-    Helper function to calculate class entropy
-    '''
+	Helper function to calculate class entropy
+	'''
+
     def getClassEntropy(self, classDict):
         entropy = 0
         # Get log sum
@@ -360,32 +538,74 @@ class DecisionTree:
 
         return entropy
 
-
-
     '''
-    Calculates information entropy of a feature
-    '''
+	Calculates information entropy of a feature
+	'''
+
     def getFeatureInfoEntropy(self, featureDict):
-        # print(featureDict)
         infoEntropy = 0
         # Iterate through each value of a feature
         for value in featureDict:
             if value == 'total':
                 continue
 
-            prob = featureDict[value]['total'] / featureDict['total'] # get probability
-            entropy = self.getFeatureEntropy(featureDict[value]) # get entropy of value
+            prob = featureDict[value]['total'] / featureDict['total']  # get probability
+            entropy = self.getFeatureEntropy(featureDict[value])  # get entropy of value
             infoEntropy += (prob * entropy)
 
         return infoEntropy
 
-    '''
-    Calculates information gain of all features
-    '''
-    def setInformationGain(self, data):
-        featureTotals = self.getFeatureTotals(data)
+    def get_max(self, featureTotals):
+        featureTotalsCopy = featureTotals['OSHA'].copy()
+        featureTotalsCopy.pop('total')
+        return max(featureTotalsCopy, key=lambda key: featureTotalsCopy[key])
 
-        classEntropy = self.getClassEntropy(featureTotals['OSHA'])
+    ''' 
+	If the tree doesn't end in a perfect leaf node, then create one by majority of OSHA label
+	'''
+
+    def setMajority(self, featureTotals, node):
+        maxGain = self.get_max(featureTotals)
+
+        child = Node()
+        child.setType('leaf')
+        node.appendChild(child)
+
+        child.setLabel(maxGain)
+        child.setParent(node)
+        return None
+
+    '''
+	Calculates information gain of all features
+	'''
+
+    def setInformationGain(self, data, node):
+        # print(node.getLabel())
+        allInfoGain = {}
+        featureTotals = self.getFeatureTotals(data, node)
+
+        if (len(featureTotals.keys()) == 1):
+            return self.setMajority(featureTotals, node)
+
+        if (featureTotals):
+            classEntropy = self.getClassEntropy(featureTotals['OSHA'])
+
+            if (classEntropy <= 0.0):
+                child = Node()
+                node.appendChild(child)
+
+                child.setType('leaf')
+                for key in featureTotals['OSHA'].keys():
+                    if key != 'total':
+                        child.setLabel(key)
+
+                child.setParent(node)
+                return None
+
+            elif (node.getType() == 'label'):
+                node.setParentDecision(self.get_max(featureTotals))
+        else:
+            return node.getParentDecision()
 
         for feature in featureTotals:
             # pass if OSHA
@@ -394,40 +614,296 @@ class DecisionTree:
 
             featureEntropy = self.getFeatureInfoEntropy(featureTotals[feature])
             informationGain = classEntropy - featureEntropy
+            allInfoGain[feature] = informationGain
 
-            self.allInfoGain[feature] = informationGain
+        maxGain = max(allInfoGain, key=lambda key: allInfoGain[key])
 
-        print(self.allInfoGain)
+        if (len(allInfoGain) == 1 and allInfoGain[maxGain] == 0.0):
+            return self.setMajority(featureTotals, node)
+
+        return maxGain
+
+    def predict(self, test_data, test_number, results):
+        curr = self.getRoot()
+
+        while (curr.getType() != 'leaf'):
+            if (curr.getType() == 'feature'):
+                if (len(curr.getChildren()) == 1):
+                    curr = curr.getChildren()[0]
+
+                else:
+                    for child in curr.getChildren():
+                        if (child.getLabel() == test_data[curr.getLabel()][test_number]):
+                            curr = child
+                            break
+
+            else:
+                curr = curr.getChildren()[0]
+
+        if (curr.getLabel() != test_data['OSHA'][test_number]):
+            # print("Predicted OSHA status of HeatMiser " + test_data['ID'][test_number] + " is: "
+            #       + curr.getLabel())
+            #
+            # print("Actual OSHA status is: " + test_data['OSHA'][test_number] + "\n")
+
+            if (test_data['OSHA'][test_number] == 'Compliant'):
+                results["Errors"]["Compliant"] += 1
+
+            elif (test_data['OSHA'][test_number] == 'NonCompliant'):
+                results["Errors"]["NonCompliant"] += 1
+
+            elif (test_data['OSHA'][test_number] == 'Safe'):
+                results["Errors"]["Safe"] += 1
+
+            results["Errors"]["Total"] += 1
+
+        if (test_data['OSHA'][test_number] == 'Compliant'):
+            results["Totals"]["Compliant"] += 1
+
+        elif (test_data['OSHA'][test_number] == 'NonCompliant'):
+            results["Totals"]["NonCompliant"] += 1
+
+        elif (test_data['OSHA'][test_number] == 'Safe'):
+            results["Totals"]["Safe"] += 1
+
+        return results
+
+    '''
+	Make predictions for the OSHA status of each HeatMiser in the test data, based on decision tree
+	'''
+
+    def make_all_predictions(self, test_data):
+        results = {}
+        results["Totals"] = {}
+        results["Errors"] = {}
+
+        results["Totals"]["Compliant"] = 0
+        results["Totals"]["Safe"] = 0
+        results["Totals"]["NonCompliant"] = 0
+
+        results["Errors"]["Compliant"] = 0
+        results["Errors"]["Safe"] = 0
+        results["Errors"]["NonCompliant"] = 0
+        results["Errors"]["Total"] = 0
+
+        for i in range(400):
+            results = self.predict(test_data, i, results)
+
+        # print(str(results["Errors"]["Total"]) + " wrong out of 4000 tests, or accuracy of "
+        #       + str(((400 - results["Errors"]["Total"]) / 400) * 100) + "%.\n")
+
+        return results
+
+
+'''
+Helper function to split into folds for cross validation
+'''
+
+
+def split_into_folds(data):
+    foldLabels = ["Fold One", "Fold Two", "Fold Three", "Fold Four", "Fold Five",
+                  "Fold Six", "Fold Seven", "Fold Eight", "Fold Nine", "Fold Ten"]
+    folds = {}
+    counter = 0
+    start = 0
+    end = 400
+
+    while (counter < 10):
+        newData = {}
+        ids = []
+        ids = data['ID'][start:end]
+        newData['ID'] = ids
+
+        distances = []
+        distances = data['Distance'][start:end]
+        newData['Distance'] = distances
+
+        speeds = []
+        speeds = data['Speeding'][start:end]
+        newData['Speeding'] = speeds
+
+        locations = []
+        locations = data['Location'][start:end]
+        newData['Location'] = locations
+
+        oshas = []
+        oshas = data['OSHA'][start:end]
+        newData['OSHA'] = oshas
+
+        folds[foldLabels[counter]] = newData
+
+        counter += 1
+        start += 400
+        end += 400
+
+    # print(folds)
+    return folds
+
+
+def isolate_training_data(data, testing_fold):
+    training_data = {}
+    ids = []
+    distances = []
+    speeds = []
+    locations = []
+    oshas = []
+
+    start = 0
+    end = 400
+    first = True
+
+    for i in range(10):
+        if (i != testing_fold):
+            if (first):
+                distances = data['Distance'][start:end]
+                speeds = data['Speeding'][start:end]
+                first = False
+            else:
+                ids = ids + data['ID'][start:end]
+                distances = distances + data['Distance'][start:end]
+            speeds = speeds + data['Speeding'][start:end]
+            locations = locations + data['Location'][start:end]
+            oshas = oshas + data['OSHA'][start:end]
+
+        start += 400
+        end += 400
+
+    training_data['ID'] = ids
+    training_data['Distance'] = distances
+    training_data['Speeding'] = speeds
+    training_data['Location'] = locations
+    training_data['OSHA'] = oshas
+
+    # print(training_data)
+    return training_data
+
+
+def isolate_testing_data(data, test_start, test_end):
+    testing_data = {}
+
+    testing_data['ID'] = data['ID'][test_start:test_end]
+    testing_data['Distance'] = data['Distance'][test_start:test_end]
+    testing_data['Speeding'] = data['Speeding'][test_start:test_end]
+    testing_data['Location'] = data['Location'][test_start:test_end]
+    testing_data['OSHA'] = data['OSHA'][test_start:test_end]
+
+    # print(testing_data)
+    return testing_data
+
+
+def update_results(results, newResult):
+    results["Totals"]["Compliant"] += newResult["Totals"]["Compliant"]
+    results["Totals"]["NonCompliant"] += newResult["Totals"]["NonCompliant"]
+    results["Totals"]["Safe"] += newResult["Totals"]["Safe"]
+
+    results["Errors"]["Compliant"] += newResult["Errors"]["Compliant"]
+    results["Errors"]["NonCompliant"] += newResult["Errors"]["NonCompliant"]
+    results["Errors"]["Safe"] += newResult["Errors"]["Safe"]
+    results["Errors"]["Total"] += newResult["Errors"]["Total"]
+
+    return results
+
+
+'''
+Runs training and testing 10 times to ensure validity 
+'''
+
+
+def ten_fold_cross_validation(data):
+    # folds = dt.split_into_folds(data)
+    test_fold = 0
+    results = {}
+
+    results["Totals"] = {}
+    results["Errors"] = {}
+
+    results["Totals"]["Compliant"] = 0
+    results["Totals"]["Safe"] = 0
+    results["Totals"]["NonCompliant"] = 0
+
+    results["Errors"]["Compliant"] = 0
+    results["Errors"]["Safe"] = 0
+    results["Errors"]["NonCompliant"] = 0
+    results["Errors"]["Total"] = 0
+
+    for i in range(10):
+        # print("\n\n --------- START OF FOLD " + str(i) + " ---------\n")
+        dt = DecisionTree()
+
+        training_data = isolate_training_data(data, test_fold)
+        dt.start_tree(training_data)
+
+        # dt.print_tree(dt.getRoot(), "")
+
+        test_start = (0 + (400 * i))
+        test_end = (400 + (400 * i))
+        test_data = isolate_testing_data(data, test_start, test_end)
+
+        newResult = dt.make_all_predictions(test_data)
+
+        results = update_results(results, newResult)
+
+        test_fold += 1
+        # print("\n\n --------- END OF FOLD " + str(i) + " ---------\n")
+
+    print("Breakdown")
+    print("Compliant: Seen -> " + str(results["Totals"]["Compliant"]))
+    print("		Correctly Predicted -> " + str(results["Totals"]["Compliant"] - results["Errors"]["Compliant"]))
+    print("		Incorrectly Predicted -> " + str(results["Errors"]["Compliant"]))
+    print("		Accuracy -> " + str((results["Totals"]["Compliant"] - results["Errors"]["Compliant"])
+                                       / results["Totals"]["Compliant"] * 100) + "%\n")
+
+    print("NonCompliant: Seen -> " + str(results["Totals"]["NonCompliant"]))
+    print(
+        "		Correctly Predicted -> " + str(results["Totals"]["NonCompliant"] - results["Errors"]["NonCompliant"]))
+    print("		Incorrectly Predicted -> " + str(results["Errors"]["NonCompliant"]))
+    print("		Accuracy -> " + str((results["Totals"]["NonCompliant"] - results["Errors"]["NonCompliant"])
+                                       / results["Totals"]["NonCompliant"] * 100) + "%\n")
+
+    print("Safe: Seen -> " + str(results["Totals"]["Safe"]))
+    print("		Correctly Predicted -> " + str(results["Totals"]["Safe"] - results["Errors"]["Safe"]))
+    print("		Incorrectly Predicted -> " + str(results["Errors"]["Safe"]))
+    print("		Accuracy -> " + str((results["Totals"]["Safe"] - results["Errors"]["Safe"])
+                                       / results["Totals"]["Safe"] * 100) + "%\n")
+
+    print("Overall Accuracy -> " + str((4000 - results["Errors"]["Total"]) / 4000 * 100) + "%")
+
 
 # Function to determine optimal K
 def determineOptimalK(data):
-	# Create a new plot
-	plt.plot()
-	distortions = []
-	# Display graph up to k = 10
-	K = range(1, 10)
-	for k in K:
-		kModel = KMeansClustering(k)
-		distortion = kModel.getDistorian(data)
-		distortions.append(distortion)
+    # Create a new plot
+    plt.plot()
+    distortions = []
+    # Display graph up to k = 10
+    K = range(1, 10)
+    for k in K:
+        kModel = KMeansClustering(k)
+        distortion = kModel.getDistorian(data)
+        distortions.append(distortion)
 
-	plt.plot(K, distortions, 'bx-')
-	plt.xlabel('k')
-	plt.ylabel('Sum of squared errors')
-	plt.title('The Elbow Method showing the optimal k')
-	plt.show()
+    plt.plot(K, distortions, 'bx-')
+    plt.xlabel('k')
+    plt.ylabel('Sum of squared errors')
+    plt.title('The Elbow Method showing the optimal k')
+    plt.show()
 
 
 def main():
-	# dt = DecisionTree()
-	# data = dp.getDataJSON()
-	# info = dt.setInformationGain(data)
-	
-	data = dp.getDataList()
-	# kCluster = KMeansClustering(4)
-	# kCluster.run(data)
+    dt = DecisionTree()
+    data = dp.getDataArrays()
+    ten_fold_cross_validation(data)
 
-	determineOptimalK(data)
+
+# dt.split_into_folds(data)
+
+# dt.printTree(dt.getRoot(), "")
+# info = dt.setInformationGain(data)
+
+# data = dp.getDataList()
+# # kCluster = KMeansClustering(4)
+# kCluster.run(data)
+
+# determineOptimalK(data)
 
 if __name__ == '__main__':
     main()

@@ -52,8 +52,8 @@ def parseDataArrays(fname):
         # Iterate line by line
         data = {}
         ids = []
-        speeds = []
         distances = []
+        speeds = []
         locations= []
         oshas = []
         headers = ['ID', 'Distance', 'Speeding', 'Location', 'OSHA']
@@ -76,11 +76,10 @@ def parseDataArrays(fname):
     distances = createBins(distances, "distance", [], 5)
 
     data[headers[0]] = ids
-    data[headers[1]] = distances
-    data[headers[2]] = speeds
+    data[headers[1]] = distances.tolist()
+    data[headers[2]] = speeds.tolist()
     data[headers[3]] = locations
     data[headers[4]] = oshas
-
     return data
 
 def getDataArrays():
