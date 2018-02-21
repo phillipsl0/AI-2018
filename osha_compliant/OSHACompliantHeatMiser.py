@@ -903,6 +903,10 @@ def update_results(results, newResult):
 	results["Errors"]["Safe"] += newResult["Errors"]["Safe"]
 	results["Errors"]["Total"] += newResult["Errors"]["Total"]
 
+	results["FalseNegatives"]["Compliant"] += newResult["FalseNegatives"]["Compliant"]
+	results["FalseNegatives"]["NonCompliant"] += newResult["FalseNegatives"]["NonCompliant"]
+	results["FalseNegatives"]["Safe"] += newResult["FalseNegatives"]["Safe"]
+
 	return results
 
 
