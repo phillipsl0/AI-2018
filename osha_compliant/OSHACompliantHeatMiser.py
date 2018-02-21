@@ -912,6 +912,7 @@ def return_results(results):
 	compliantTP = results["Totals"]["Compliant"] - results["FalseNegatives"]["Compliant"]
 	compliantFP = results["FalsePositives"]["Compliant"]
 	compliantFN = results["FalseNegatives"]["Compliant"]
+	
 	print("		Correctly Predicted -> " + str(compliantTP))
 	print("		False Positives -> " + str(compliantFP))
 	print("		False Negatives -> " + str(compliantFN) + "\n")
@@ -938,6 +939,7 @@ def return_results(results):
 	nonCompliantTP = results["Totals"]["NonCompliant"] - results["FalseNegatives"]["NonCompliant"]
 	nonCompliantFP = results["FalsePositives"]["NonCompliant"]
 	nonCompliantFN = results["FalseNegatives"]["NonCompliant"]
+
 	print("		Correctly Predicted -> " + str(nonCompliantTP))
 	print("		False Positives -> " + str(nonCompliantFP))
 	print("		False Negatives -> " + str(nonCompliantFN) + "\n")
@@ -965,6 +967,7 @@ def return_results(results):
 	safeTP = results["Totals"]["Safe"] - results["FalseNegatives"]["Safe"]
 	safeFP = results["FalsePositives"]["Safe"]
 	safeFN = results["FalseNegatives"]["Safe"]
+
 	print("		Correctly Predicted -> " + str(safeTP))
 	print("		False Positives -> " + str(safeFP))
 	print("		False Negatives -> " + str(safeFN) + "\n")
@@ -987,7 +990,18 @@ def return_results(results):
 		safeF1 = 2 * ((safePrecision * safeRecall) / (safePrecision + safeRecall))
 	print("		F1-measure -> " + str(safeF1) + "\n")
 
+	print("Totals: ")
+	precisionTotal = (safePrecision + compliantPrecision + nonCompliantPrecision) / 3
+	print("		Precision -> " + str(precisionTotal) + "%")
+
+	recallTotal = (safeRecall + compliantRecall + nonCompliantRecall) / 3
+	print("		Recall -> " + str(recallTotal) + "%")
+
+	f1Total = (safeF1 + compliantF1 + nonCompliantF1) / 3
+	print("		F1-measure -> " + str(f1Total) + "\n")
+
 	return((compliantF1+nonCompliantF1+safeF1)/3)
+
 
 '''
 Runs Decision Tree training and testing 10 times to ensure validity 
