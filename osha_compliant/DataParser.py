@@ -5,6 +5,7 @@ Assignment #3
 # Returns list of dictonaries, each dictionary is data associated with a heatmiser
 
 from BinHelper import createBins
+from BinHelper import createBinsManually
 
 # Returns list of dictonaries, each dictionary is data associated with a heatmiser
 def parseDataJSON(fname):
@@ -72,12 +73,14 @@ def parseDataArrays(fname):
             oshas.append(lineList[4])
 
     # transform numerical values into categorical values
-    speeds = createBins(speeds, "speed", [], 5)
-    distances = createBins(distances, "distance", [], 5)
+    # speeds = createBins(speeds, "speed", [], 5)
+    # distances = createBins(distances, "distance", [], 5)
+    distances = createBinsManually(distances, "distance")
+    speeds = createBinsManually(speeds, "speed")
 
     data[headers[0]] = ids
-    data[headers[1]] = distances.tolist()
-    data[headers[2]] = speeds.tolist()
+    data[headers[1]] = distances #.tolist()
+    data[headers[2]] = speeds #.tolist()
     data[headers[3]] = locations
     data[headers[4]] = oshas
     return data
