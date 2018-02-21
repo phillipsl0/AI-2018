@@ -954,7 +954,7 @@ def ten_fold_cross_validation(data):
 		test_fold += 1
 	# print("\n\n --------- END OF FOLD " + str(i) + " ---------\n")
 
-	print("Decision Tree Breakdown")
+	print("Decision Tree 10 Fold Cross Validation Results")
 
 	print("Compliant: Seen -> " + str(results["Totals"]["Compliant"]))	
 	compliantTP = results["Totals"]["Compliant"] - results["Errors"]["Compliant"]
