@@ -14,6 +14,8 @@ import random
 Implementation of k-means clustering using distance, speed
 Using a library: https://pythonprogramminglanguage.com/kmeans-elbow-method/
 '''
+
+
 class KMeansClustering:
 	def __init__(self, k=2, maxIter=10, fileName="osha_heatmiser_trial_output_kmeans"):
 		self.k = k  # number of clusters
@@ -732,25 +734,20 @@ class DecisionTree:
 
 		# Label doesn't match, increment false positive
 		if (curr.getLabel() != test_data['OSHA'][test_number]):
-			# print("Predicted OSHA status of HeatMiser " + test_data['ID'][test_number] + " is: "
-			#       + curr.getLabel())
-			#
-			# print("Actual OSHA status is: " + test_data['OSHA'][test_number] + "\n")
-
 			# Update false positive: labels
-			if (test_data['OSHA'][test_number] == 'Compliant'):
-				results["Errors"]["Compliant"] += 1
+			if (curr.getLabel() == 'Compliant'):
+				results["FalsePositives"]["Compliant"] += 1
 
-			elif (test_data['OSHA'][test_number] == 'NonCompliant'):
-				results["Errors"]["NonCompliant"] += 1
+			elif (curr.getLabel() == 'NonCompliant'):
+				results["FalsePositives"]["NonCompliant"] += 1
 
-			elif (test_data['OSHA'][test_number] == 'Safe'):
-				results["Errors"]["Safe"] += 1
+			elif (curr.getLabel() == 'Safe'):
+				results["FalsePositives"]["Safe"] += 1
 
-			# Update false negative: incorrect label 
-			results["FalseNegatives"][(test_data['OSHA'][test_number])] += 1
+			# Update false negative: incorrect label
+			results["FalseNegatives"][test_data['OSHA'][test_number]] += 1
 
-			results["Errors"]["Total"] += 1
+			results["FalsePositives"]["Total"] += 1
 			results["FalseNegatives"]["Total"] += 1
 
 		# Update totals
@@ -768,10 +765,11 @@ class DecisionTree:
 	'''
 	Make predictions for the OSHA status of each HeatMiser in the test data, based on decision tree
 	'''
+
 	def make_all_predictions(self, test_data):
 		results = {}
 		results["Totals"] = {}
-		results["Errors"] = {}
+		results["FalsePositives"] = {}
 		results["FalseNegatives"] = {}
 
 		results["Totals"]["Compliant"] = 0
@@ -779,10 +777,10 @@ class DecisionTree:
 		results["Totals"]["NonCompliant"] = 0
 
 		# False Positives
-		results["Errors"]["Compliant"] = 0
-		results["Errors"]["Safe"] = 0
-		results["Errors"]["NonCompliant"] = 0
-		results["Errors"]["Total"] = 0
+		results["FalsePositives"]["Compliant"] = 0
+		results["FalsePositives"]["Safe"] = 0
+		results["FalsePositives"]["NonCompliant"] = 0
+		results["FalsePositives"]["Total"] = 0
 
 		# False Negatives
 		results["FalseNegatives"]["Compliant"] = 0
@@ -793,15 +791,14 @@ class DecisionTree:
 		for i in range(400):
 			results = self.predict(test_data, i, results)
 
-		# print(str(results["Errors"]["Total"]) + " wrong out of 4000 tests, or accuracy of "
-		#       + str(((400 - results["Errors"]["Total"]) / 400) * 100) + "%.\n")
-
 		return results
 
 
 '''
 Helper function to split into folds for cross validation
 '''
+
+
 def split_into_folds(data):
 	foldLabels = ["Fold One", "Fold Two", "Fold Three", "Fold Four", "Fold Five",
 				  "Fold Six", "Fold Seven", "Fold Eight", "Fold Nine", "Fold Ten"]
@@ -898,10 +895,10 @@ def update_results(results, newResult):
 	results["Totals"]["NonCompliant"] += newResult["Totals"]["NonCompliant"]
 	results["Totals"]["Safe"] += newResult["Totals"]["Safe"]
 
-	results["Errors"]["Compliant"] += newResult["Errors"]["Compliant"]
-	results["Errors"]["NonCompliant"] += newResult["Errors"]["NonCompliant"]
-	results["Errors"]["Safe"] += newResult["Errors"]["Safe"]
-	results["Errors"]["Total"] += newResult["Errors"]["Total"]
+	results["FalsePositives"]["Compliant"] += newResult["FalsePositives"]["Compliant"]
+	results["FalsePositives"]["NonCompliant"] += newResult["FalsePositives"]["NonCompliant"]
+	results["FalsePositives"]["Safe"] += newResult["FalsePositives"]["Safe"]
+	results["FalsePositives"]["Total"] += newResult["FalsePositives"]["Total"]
 
 	results["FalseNegatives"]["Compliant"] += newResult["FalseNegatives"]["Compliant"]
 	results["FalseNegatives"]["NonCompliant"] += newResult["FalseNegatives"]["NonCompliant"]
@@ -910,16 +907,100 @@ def update_results(results, newResult):
 	return results
 
 
+def return_results(results):
+	print("Compliant: Seen -> " + str(results["Totals"]["Compliant"]))
+	compliantTP = results["Totals"]["Compliant"] - results["FalseNegatives"]["Compliant"]
+	compliantFP = results["FalsePositives"]["Compliant"]
+	compliantFN = results["FalseNegatives"]["Compliant"]
+	print("		Correctly Predicted -> " + str(compliantTP))
+	print("		False Positives -> " + str(compliantFP))
+	print("		False Negatives -> " + str(compliantFN) + "\n")
+	print("		Accuracy -> " + str((compliantTP / results["Totals"]["Compliant"]) * 100) + "%")
+	# Catch division by 0
+	if ((compliantTP == 0) and (compliantFP == 0)):
+		compliantPrecision = 0
+	else:
+		compliantPrecision = (compliantTP / (compliantTP + compliantFP)) * 100
+	print("		Precision -> " + str(compliantPrecision) + "%")
+
+	if ((compliantTP == 0) and (compliantFN == 0)):
+		compliantRecall = 0
+	else:
+		compliantRecall = (compliantTP / (compliantTP + compliantFN)) * 100
+	print("		Recall -> " + str(compliantRecall) + "%")
+	if ((compliantRecall == 0) and (compliantPrecision == 0)):
+		compliantF1 = 0
+	else:
+		compliantF1 = 2 * ((compliantPrecision * compliantRecall) / (compliantPrecision + compliantRecall))
+	print("		F1-measure -> " + str(compliantF1) + "\n")
+
+	print("NonCompliant: Seen -> " + str(results["Totals"]["NonCompliant"]))
+	nonCompliantTP = results["Totals"]["NonCompliant"] - results["FalseNegatives"]["NonCompliant"]
+	nonCompliantFP = results["FalsePositives"]["NonCompliant"]
+	nonCompliantFN = results["FalseNegatives"]["NonCompliant"]
+	print("		Correctly Predicted -> " + str(nonCompliantTP))
+	print("		False Positives -> " + str(nonCompliantFP))
+	print("		False Negatives -> " + str(nonCompliantFN) + "\n")
+	print("		Accuracy -> " + str((nonCompliantTP / results["Totals"]["NonCompliant"]) * 100) + "%")
+	# Catch division by 0
+	if ((nonCompliantTP == 0) and (nonCompliantFP == 0)):
+		nonCompliantPrecision = 0
+	else:
+		nonCompliantPrecision = (nonCompliantTP / (nonCompliantTP + nonCompliantFP)) * 100
+	print("		Precision -> " + str(compliantPrecision) + "%")
+
+	if ((nonCompliantTP == 0) and (nonCompliantFN == 0)):
+		nonCompliantRecall = 0
+	else:
+		nonCompliantRecall = (nonCompliantTP / (nonCompliantTP + nonCompliantFN)) * 100
+	print("		Recall -> " + str(compliantRecall) + "%")
+	if ((nonCompliantRecall == 0) and (nonCompliantPrecision == 0)):
+		nonCompliantF1 = 0
+	else:
+		nonCompliantF1 = 2 * (
+			(nonCompliantPrecision * nonCompliantRecall) / (nonCompliantPrecision + nonCompliantRecall))
+	print("		F1-measure -> " + str(nonCompliantF1) + "\n")
+
+	print("Safe: Seen -> " + str(results["Totals"]["Safe"]))
+	safeTP = results["Totals"]["Safe"] - results["FalseNegatives"]["Safe"]
+	safeFP = results["FalsePositives"]["Safe"]
+	safeFN = results["FalseNegatives"]["Safe"]
+	print("		Correctly Predicted -> " + str(safeTP))
+	print("		False Positives -> " + str(safeFP))
+	print("		False Negatives -> " + str(safeFN) + "\n")
+	print("		Accuracy -> " + str((safeTP / results["Totals"]["Safe"]) * 100) + "%")
+	# Catch division by 0
+	if ((safeTP == 0) and (safeFP == 0)):
+		safePrecision = 0
+	else:
+		safePrecision = (safeTP / (safeTP + safeFP)) * 100
+	print("		Precision -> " + str(safePrecision) + "%")
+
+	if ((safeTP == 0) and (safeFN == 0)):
+		safeRecall = 0
+	else:
+		safeRecall = (safeTP / (safeTP + safeFN)) * 100
+	print("		Recall -> " + str(safeRecall) + "%")
+	if ((safeRecall == 0) and (safePrecision == 0)):
+		safeF1 = 0
+	else:
+		safeF1 = 2 * ((safePrecision * safeRecall) / (safePrecision + safeRecall))
+	print("		F1-measure -> " + str(safeF1) + "\n")
+
+	return((compliantF1+nonCompliantF1+safeF1)/3)
+
 '''
 Runs Decision Tree training and testing 10 times to ensure validity 
 '''
+
+
 def ten_fold_cross_validation(data):
 	# folds = dt.split_into_folds(data)
 	test_fold = 0
 	results = {}
 
 	results["Totals"] = {}
-	results["Errors"] = {}
+	results["FalsePositives"] = {}
 	results["FalseNegatives"] = {}
 
 	results["Totals"]["Compliant"] = 0
@@ -927,16 +1008,19 @@ def ten_fold_cross_validation(data):
 	results["Totals"]["NonCompliant"] = 0
 
 	# False Positives
-	results["Errors"]["Compliant"] = 0
-	results["Errors"]["Safe"] = 0
-	results["Errors"]["NonCompliant"] = 0
-	results["Errors"]["Total"] = 0
+	results["FalsePositives"]["Compliant"] = 0
+	results["FalsePositives"]["Safe"] = 0
+	results["FalsePositives"]["NonCompliant"] = 0
+	results["FalsePositives"]["Total"] = 0
 
 	# False Negatives
 	results["FalseNegatives"]["Compliant"] = 0
 	results["FalseNegatives"]["Safe"] = 0
 	results["FalseNegatives"]["NonCompliant"] = 0
 	results["FalseNegatives"]["Total"] = 0
+
+	# f1 measures
+	f_ones = []
 
 	for i in range(10):
 		# print("\n\n --------- START OF FOLD " + str(i) + " ---------\n")
@@ -953,96 +1037,112 @@ def ten_fold_cross_validation(data):
 
 		newResult = dt.make_all_predictions(test_data)
 
+		print("Decision Tree Fold " + str(i+1) + " Results")
+
+		f_one = return_results(newResult)
+		f_ones.append(f_one)
+
+		print("Overall Accuracy -> " + str((400 - newResult["FalsePositives"]["Total"]) / 400 * 100) + "%")
+		print("------------- END OF FOLD " + str(i+1) + " -------------\n\n")
+
 		results = update_results(results, newResult)
 
 		test_fold += 1
-	# print("\n\n --------- END OF FOLD " + str(i) + " ---------\n")
 
 	print("Decision Tree 10 Fold Cross Validation Results")
 
-	print("Compliant: Seen -> " + str(results["Totals"]["Compliant"]))	
-	compliantTP = results["Totals"]["Compliant"] - results["Errors"]["Compliant"]
-	compliantFP = results["Errors"]["Compliant"]
-	compliantFN = results["FalseNegatives"]["Compliant"]
-	print("		Correctly Predicted -> " + str(compliantTP))
-	print("		False Positives -> " + str(compliantFP))
-	print("		False Negatives -> " + str(compliantFN) + "\n")
-	print("		Accuracy -> " + str((compliantTP / results["Totals"]["Compliant"]) * 100) + "%")
-	# Catch division by 0
-	if ((compliantTP == 0) and (compliantFP == 0)):
-		compliantPrecision = 0
-	else:
-		compliantPrecision = (compliantTP / (compliantTP + compliantFP))*100
-	print("		Precision -> " + str(compliantPrecision) + "%")
-	
-	if ((compliantTP == 0) and (compliantFN == 0)):
-		compliantRecall = 0
-	else:
-		compliantRecall = (compliantTP / (compliantTP + compliantFN))*100
-	print("		Recall -> " + str(compliantRecall) + "%")
-	if ((compliantRecall == 0) and (compliantPrecision == 0)):
-		compliantF1 = 0
-	else:
-		compliantF1 = 2*((compliantPrecision * compliantRecall) / (compliantPrecision + compliantRecall))
-	print("		F1-measure -> " + str(compliantF1) + "\n")
+	return_results(results)
+
+	print("Overall Accuracy -> " + str((4000 - results["FalsePositives"]["Total"]) / 4000 * 100) + "%")
+	return f_ones
 
 
-	print("NonCompliant: Seen -> " + str(results["Totals"]["NonCompliant"]))
-	nonCompliantTP = results["Totals"]["NonCompliant"] - results["Errors"]["NonCompliant"]
-	nonCompliantFP = results["Errors"]["NonCompliant"]
-	nonCompliantFN = results["FalseNegatives"]["NonCompliant"]
-	print("		Correctly Predicted -> " + str(nonCompliantTP))
-	print("		False Positives -> " + str(nonCompliantFP))
-	print("		False Negatives -> " + str(nonCompliantFN) + "\n")
-	print("		Accuracy -> " + str((nonCompliantTP / results["Totals"]["NonCompliant"]) * 100) + "%")
-	# Catch division by 0
-	if ((nonCompliantTP == 0) and (nonCompliantFP == 0)):
-		nonCompliantPrecision = 0
-	else:
-		nonCompliantPrecision = (nonCompliantTP / (nonCompliantTP + nonCompliantFP))*100
-	print("		Precision -> " + str(compliantPrecision) + "%")
-	
-	if ((nonCompliantTP == 0) and (nonCompliantFN == 0)):
-		nonCompliantRecall = 0
-	else:
-		nonCompliantRecall = (nonCompliantTP / (nonCompliantTP + nonCompliantFN))*100
-	print("		Recall -> " + str(compliantRecall) + "%")
-	if ((nonCompliantRecall == 0) and (nonCompliantPrecision == 0)):
-		nonCompliantF1 = 0
-	else:
-		nonCompliantF1 = 2*((nonCompliantPrecision * nonCompliantRecall) / (nonCompliantPrecision + nonCompliantRecall))
-	print("		F1-measure -> " + str(nonCompliantF1) + "\n")
+'''
+Generate baseline by guessing majority class ("Safe") every time
+'''
 
+def generate_baseline(test_data):
+	results = {}
 
-	print("Safe: Seen -> " + str(results["Totals"]["Safe"]))
-	safeTP = results["Totals"]["Safe"] - results["Errors"]["Safe"]
-	safeFP = results["Errors"]["Safe"]
-	safeFN = results["FalseNegatives"]["Safe"]
-	print("		Correctly Predicted -> " + str(safeTP))
-	print("		False Positives -> " + str(safeFP))
-	print("		False Negatives -> " + str(safeFN) + "\n")
-	print("		Accuracy -> " + str((safeTP / results["Totals"]["Safe"]) * 100) + "%")
-	# Catch division by 0
-	if ((safeTP == 0) and (safeFP == 0)):
-		safePrecision = 0
-	else:
-		safePrecision = (safeTP / (safeTP + safeFP))*100
-	print("		Precision -> " + str(safePrecision) + "%")
-	
-	if ((safeTP == 0) and (safeFN == 0)):
-		safeRecall = 0
-	else:
-		safeRecall = (safeTP / (safeTP + safeFN))*100
-	print("		Recall -> " + str(safeRecall) + "%")
-	if ((safeRecall == 0) and (safePrecision == 0)):
-		safeF1 = 0
-	else:
-		safeF1 = 2*((safePrecision * safeRecall) / (safePrecision + safeRecall))
-	print("		F1-measure -> " + str(safeF1) + "\n")
+	results["Totals"] = {}
+	results["FalsePositives"] = {}
+	results["FalseNegatives"] = {}
 
+	results["Totals"]["Compliant"] = 0
+	results["Totals"]["Safe"] = 0
+	results["Totals"]["NonCompliant"] = 0
 
-	print("Overall Accuracy -> " + str((4000 - results["Errors"]["Total"]) / 4000 * 100) + "%")
+	# False Positives
+	results["FalsePositives"]["Compliant"] = 0
+	results["FalsePositives"]["Safe"] = 0
+	results["FalsePositives"]["NonCompliant"] = 0
+	results["FalsePositives"]["Total"] = 0
 
+	# False Negatives
+	results["FalseNegatives"]["Compliant"] = 0
+	results["FalseNegatives"]["Safe"] = 0
+	results["FalseNegatives"]["NonCompliant"] = 0
+	results["FalseNegatives"]["Total"] = 0
+
+	for i in range(4000):
+		label = "Safe"
+
+		# Label doesn't match, increment false positive
+		if (label != test_data['OSHA'][i]):
+			# Update false positive: labels
+			if (label == 'Compliant'):
+				results["FalsePositives"]["Compliant"] += 1
+
+			elif (label == 'NonCompliant'):
+				results["FalsePositives"]["NonCompliant"] += 1
+
+			elif (label == 'Safe'):
+				results["FalsePositives"]["Safe"] += 1
+
+			# Update false negative: incorrect label
+			results["FalseNegatives"][test_data['OSHA'][i]] += 1
+
+			results["FalsePositives"]["Total"] += 1
+			results["FalseNegatives"]["Total"] += 1
+
+		# Update totals
+		if (test_data['OSHA'][i] == 'Compliant'):
+			results["Totals"]["Compliant"] += 1
+
+		elif (test_data['OSHA'][i] == 'NonCompliant'):
+			results["Totals"]["NonCompliant"] += 1
+
+		elif (test_data['OSHA'][i] == 'Safe'):
+			results["Totals"]["Safe"] += 1
+
+	f_one = return_results(results)
+	f_ones = []
+	for i in range(10):
+		f_ones.append(f_one)
+
+	return f_ones
+
+# Plots majority class baseline versus actual decision tree performance
+def plotComparison(real_f_ones, baseline_f_ones):
+	# Create a new plot
+	plt.plot()
+	# distortions = []
+	# Display graph up to k = 10
+	K = range(1, 11)
+	# for k in K:
+	# 	kModel = KMeansClustering(k)
+	# 	distortion = kModel.getDistorian(data)
+	# 	distortions.append(distortion)
+
+	plt.plot(K, baseline_f_ones, 'bx-', label="Baseline")
+	plt.plot(K, real_f_ones, 'rx-', label="Decision Tree")
+	plt.xlabel('Fold Number')
+	plt.ylabel('F1 Measure (average over three classes)')
+	plt.title('Majority Class Baseline vs. Decision Tree Results')
+
+	legend = plt.legend(loc='upper center', shadow=True, fontsize='x-large')
+	legend.get_frame()
+	plt.show()
 
 
 # Function to determine optimal K
@@ -1078,29 +1178,31 @@ def getStatusPlot(data, feature):
 def main():
 	dt = DecisionTree()
 	data = dp.getDataArrays()
-	ten_fold_cross_validation(data)
+	real_f_ones = ten_fold_cross_validation(data)
+	fake_f_ones = generate_baseline(data)
+	plotComparison(real_f_ones, fake_f_ones)
 
-	# searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:"
-	# 	+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
-	# if (searchType == "1"):
-	# 	print("Decision tree approach selected!")
-	# 	search = 0
-	# elif (searchType == "2"):
-	# 	print("K means clustering approach selected!")
-	# data = dp.getDataList()
-	# kCluster = KMeansClustering(2)
-	# kCluster.run(data)
-	# elif (searchType == "3"):
-	# 	print("Shutting down...")
-	# else:
-	# 	print("Sorry, that was an incorrect command. Shutting down...")
-	# 	sys.exit()
+# searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:"
+# 	+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
+# if (searchType == "1"):
+# 	print("Decision tree approach selected!")
+# 	search = 0
+# elif (searchType == "2"):
+# 	print("K means clustering approach selected!")
+# data = dp.getDataList()
+# kCluster = KMeansClustering(2)
+# kCluster.run(data)
+# elif (searchType == "3"):
+# 	print("Shutting down...")
+# else:
+# 	print("Sorry, that was an incorrect command. Shutting down...")
+# 	sys.exit()
 
-	# Uncomment below to get either OSHA (1) or location (2) plot
-	# getStatusPlot(data, 2)
+# Uncomment below to get either OSHA (1) or location (2) plot
+# getStatusPlot(data, 2)
 
-	# Uncomment below to run elbow method
-	# determineOptimalK(data)
+# Uncomment below to run elbow method
+# determineOptimalK(data)
 
 if __name__ == '__main__':
 	main()
