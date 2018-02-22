@@ -912,7 +912,7 @@ def return_results(results):
 	compliantTP = results["Totals"]["Compliant"] - results["FalseNegatives"]["Compliant"]
 	compliantFP = results["FalsePositives"]["Compliant"]
 	compliantFN = results["FalseNegatives"]["Compliant"]
-	
+
 	print("		Correctly Predicted -> " + str(compliantTP))
 	print("		False Positives -> " + str(compliantFP))
 	print("		False Negatives -> " + str(compliantFN) + "\n")
@@ -1037,13 +1037,10 @@ def ten_fold_cross_validation(data):
 	f_ones = []
 
 	for i in range(10):
-		# print("\n\n --------- START OF FOLD " + str(i) + " ---------\n")
 		dt = DecisionTree()
 
 		training_data = isolate_training_data(data, test_fold)
 		dt.start_tree(training_data)
-
-		# dt.print_tree(dt.getRoot(), "")
 
 		test_start = (0 + (400 * i))
 		test_end = (400 + (400 * i))
@@ -1190,33 +1187,33 @@ def getStatusPlot(data, feature):
 
 
 def main():
-	dt = DecisionTree()
-	data = dp.getDataArrays()
-	real_f_ones = ten_fold_cross_validation(data)
-	fake_f_ones = generate_baseline(data)
-	plotComparison(real_f_ones, fake_f_ones)
+	searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:"
+		+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
+	if (searchType == "1"):
+		print("Decision tree approach selected!")
+		search = 0
+		dt = DecisionTree()
+		data = dp.getDataArrays()
+		real_f_ones = ten_fold_cross_validation(data)
+		fake_f_ones = generate_baseline(data)
+		plotComparison(real_f_ones, fake_f_ones)
+	elif (searchType == "2"):
+		print("K means clustering approach selected!")
+		data = dp.getDataList()
+		kCluster = KMeansClustering(2)
+		kCluster.run(data)
+		# Uncomment below to get either OSHA (1) or location (2) plot
+		# getStatusPlot(data, 2)
 
-# searchType = input("Welcome to OSHA Compliant HeatMiser! \nPlease select your option by pressing the appropriate number:"
-# 	+ " 1 for decision tree, 2 for k means clustering, or 3 to quit: ")
-# if (searchType == "1"):
-# 	print("Decision tree approach selected!")
-# 	search = 0
-# elif (searchType == "2"):
-# 	print("K means clustering approach selected!")
-# data = dp.getDataList()
-# kCluster = KMeansClustering(2)
-# kCluster.run(data)
-# elif (searchType == "3"):
-# 	print("Shutting down...")
-# else:
-# 	print("Sorry, that was an incorrect command. Shutting down...")
-# 	sys.exit()
+		# Uncomment below to run elbow method
+		# determineOptimalK(data)
 
-# Uncomment below to get either OSHA (1) or location (2) plot
-# getStatusPlot(data, 2)
+	elif (searchType == "3"):
+		print("Shutting down...")
+	else:
+		print("Sorry, that was an incorrect command. Shutting down...")
+		sys.exit()
 
-# Uncomment below to run elbow method
-# determineOptimalK(data)
 
 if __name__ == '__main__':
 	main()
