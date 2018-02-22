@@ -1,0 +1,16 @@
+Final cluster data: 
+*** --- *** 
+Cluster 1
+Center: 50.01794543063785, 9.027613412228797
+OSHA statuses: Safe: 2609, NonCompliant: 93, Compliant: 340
+Location statuses: Office: 3037, Warehouse: 5
+SSE: 650249.449932313
+*** --- *** 
+*** --- *** 
+Cluster 2
+Center: 180.00585947302386, 18.373902132998744
+OSHA statuses: Safe: 667, Compliant: 66, NonCompliant: 64
+Location statuses: Warehouse: 796, Office: 1
+SSE: 668836.3301006269
+*** --- *** 
+OSHA and Location status totals: Safe: 3276, Office: 3038, NonCompliant: 157, Compliant: 406, Warehouse: 801

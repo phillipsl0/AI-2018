@@ -194,7 +194,7 @@ class KMeansClustering:
 		print("\n")
 
 		# Create text file to write to. Overwrites same named file
-		f = open(self.fileName, "a")
+		f = open(self.fileName, "w")
 		f.write("Final cluster data: \n")
 
 		for i in range(self.k):
@@ -360,8 +360,6 @@ class KMeansClustering:
 			self.fit(X, first)
 			first = False
 			print("")
-			print("Updated clusters: ")
-			print(self.centroids)
 
 		print("Final stats: ")
 		self.getFinalStatsKMeans()
@@ -1198,7 +1196,7 @@ def main():
 		fake_f_ones = generate_baseline(data)
 		plotComparison(real_f_ones, fake_f_ones)
 	elif (searchType == "2"):
-		print("K means clustering approach selected!")
+		print("K means clustering approach selected! Running model with optimal k = 2")
 		data = dp.getDataList()
 		kCluster = KMeansClustering(2)
 		kCluster.run(data)
