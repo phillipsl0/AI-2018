@@ -4,6 +4,7 @@ Assignment #4
 '''
 from random import randrange
 
+
 # Inner room class that represents a single room
 class Room:
 	def __init__(self, name):
@@ -19,6 +20,12 @@ class Room:
 
 	def get_action(self):
 		return self.action
+
+	def set_action(self, action):
+		self.action = action
+
+	def get_name(self):
+		return self.name
 
 # Floor class that represents space of heat miser
 class Floor:
@@ -52,16 +59,27 @@ class Floor:
 		wh4.set_neighbors([of4, wh3, of6, of5])
 
 		# Add to floor
-		self.rooms["Warehouse 1"] = wh1
-		self.rooms["Warehouse 2"] = wh2
-		self.rooms["Warehouse 3"] = wh3
-		self.rooms["Warehouse 4"] = wh4
-		self.rooms["Office 1"] = of1
-		self.rooms["Office 2"] = of2
-		self.rooms["Office 3"] = of3
-		self.rooms["Office 4"] = of4
-		self.rooms["Office 5"] = of5
-		self.rooms["Office 6"] = of6
+		self.rooms["Warehouse 1"]["Room"] = wh1
+		self.rooms["Warehouse 2"]["Room"] = wh2
+		self.rooms["Warehouse 3"]["Room"] = wh3
+		self.rooms["Warehouse 4"]["Room"] = wh4
+		self.rooms["Office 1"]["Room"] = of1
+		self.rooms["Office 2"]["Room"] = of2
+		self.rooms["Office 3"]["Room"] = of3
+		self.rooms["Office 4"]["Room"] = of4
+		self.rooms["Office 5"]["Room"] = of5
+		self.rooms["Office 6"]["Room"] = of6
+
+		self.rooms["Warehouse 1"]["Action"] = None
+		self.rooms["Warehouse 2"]["Action"] = None
+		self.rooms["Warehouse 3"]["Action"] = None
+		self.rooms["Warehouse 4"]["Action"] = None
+		self.rooms["Office 1"]["Action"] = None
+		self.rooms["Office 2"]["Action"] = None
+		self.rooms["Office 3"]["Action"] = None
+		self.rooms["Office 4"]["Action"] = None
+		self.rooms["Office 5"]["Action"] = None
+		self.rooms["Office 6"]["Action"] = None
 
 	# Returns starting room
 	def get_initial_room(self):
@@ -69,14 +87,89 @@ class Floor:
 		size = len(keys)
 		return self.rooms[keys[randrange(size)]]
 
+	# Checks if all rooms have actions
+	def check_floor_actions(self):
+		for room in self.rooms:
+			if self.rooms[room]["Action"] is None:
+				return False
+		return True
+
+	# Attempt room action
+	def attempt_room_action(self, room, action):
+		neighbors = room.get_neighbors()
+		
+		for neighbor in neighbors:
+			# Can't do action - neighbor has similar action
+			if self.rooms[room.get_name()]["Action"] == action:
+				return False
+
+		return True
+
+	# Set room action
+	def set_room_action(room, action):
+		roomName = room.get_name()
+
+		self.rooms[roomName]["Action"] = action
+		room.set_action(action)
+
+
 # Heat Miser class
 class ConstraintOptimalHeatMiser:
 	def __init__(self):
 		self.floor = Floor()
-		self.mapping = {}
+		self.actionHistory = {}
+
+	def get_room_action(self, room):
+		actions = ["Temp", "Humidity", "Pass"]
+		roomName = room.get_name()
+
+		if roomName not in self.actionHistory:
+			self.actionHistory[roomName] = []
+		history = self.actionHistory[roomName]
+
+		# Get first action not used
+		for action in actions:
+			if action not in history:
+				# add action to heat miser's room history
+				history.append(action)
+				self.actionHistory[roomName] = history
+
+				return action
+		return None
+
+	# Clears current actions done on a room
+	def clear_room_history(self, room):
+		self.actionHistory[room.get_name()] = []
+
+
 
 	def brute_force(self):
-		pass
+		currRoom = self.floor.get_initial_room()
+		room_stack = []
+		fails = 0 # keeps track of how often heat miser has to backtrack
+
+		while not self.floor.check_floor_actions():
+			action = self.get_room_action(currRoom) # adds action to room history
+
+			# back track
+			if action is None:
+				fail += 1
+				self.clear_room_history(currRoom)
+				currRoom = room_stack.pop()
+			else:
+				# Check whether action can be done on room
+				success = self.floor.attempt_room_action(currRoom, action)
+				
+				# Action valid - set action and add to stack
+				if success:
+					self.floor.set_room_action(currRoom, action)
+					room_stack.append(currRoom)
+					currRoom = self.floor.next_room()
+				else:
+
+
+
+
 
 
 def main():
