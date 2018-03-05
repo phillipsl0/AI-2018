@@ -46,18 +46,24 @@ class Floor:
 		self.most_edges = sorted(edges, key=edges.__getitem__)
 
 	def pop_edges(self):
-		self.colored_pointer += 1
-		self.already_colored.append(self.most_edges[self.edges_pointer])
-
-		self.most_edges.pop(self.edges_pointer)
+		room = self.most_edges.pop(self.edges_pointer)
 		self.edges_pointer -= 1
 
-	def pop_colored(self):
-		self.edges_pointer += 1
-		self.most_edges.append(self.already_colored[self.colored_pointer])
+		return room
 
-		self.already_colored.pop(self.colored_pointer)
+	def push_edges(self, room):
+		self.most_edges.append(room)
+		self.edges_pointer += 1
+
+	def pop_colored(self):
+		room = self.already_colored.pop(self.colored_pointer)
 		self.colored_pointer -= 1
+
+		return room
+
+	def push_colored(self, room):
+		self.already_colored.append(room)
+		self.colored_pointer += 1
 
 	def create_floor(self):
 		# Create all the rooms
@@ -132,7 +138,7 @@ class Floor:
 		return True
 
 	# Set room action
-	def set_room_action(room, action):
+	def set_room_action(self, room, action):
 		roomName = room.get_name()
 
 		self.rooms[roomName]["Action"] = action
@@ -168,7 +174,6 @@ class ConstraintOptimalHeatMiser:
 		self.actionHistory[room.get_name()] = []
 
 
-
 	def brute_force(self):
 		currRoom = self.floor.get_initial_room()
 		room_stack = []
@@ -193,10 +198,26 @@ class ConstraintOptimalHeatMiser:
 					currRoom = self.floor.next_room()
 				else:
 
+	def most_constraining(self):
+		currRoom = self.floor.pop_edges()
+		fails = 0
 
+		while not self.floor.check_floor_actions():
+			action = self.get_room_action(currRoom)
 
+			if action is None:
+				fails += 1
+				self.clear_room_history(currRoom)
+				self.floor.push_edges(currRoom)
 
+				currRoom = self.floor.pop_colored()
 
+			else:
+				success = self.floor.attempt_room_action(currRoom, action)
+
+				if success:
+					self.floor.set_room_action(currRoom, action)
+					self.floor.push_colored(currRoom)
 
 def main():
 	heatMiser = ConstraintOptimalHeatMiser()
