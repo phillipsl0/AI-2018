@@ -32,6 +32,32 @@ class Floor:
 	def __init__(self):
 		self.rooms = {}
 		self.create_floor()
+		self.most_edges = []
+		self.edges_pointer = len(self.rooms) - 1
+		self.already_colored = []
+		self.colored_pointer = 0
+
+	def create_edges_stack(self):
+		edges = {}
+
+		for room in self.rooms:
+			edges[room] = len(self.rooms[room].get_neighbors())
+
+		self.most_edges = sorted(edges, key=edges.__getitem__)
+
+	def pop_edges(self):
+		self.colored_pointer += 1
+		self.already_colored.append(self.most_edges[self.edges_pointer])
+
+		self.most_edges.pop(self.edges_pointer)
+		self.edges_pointer -= 1
+
+	def pop_colored(self):
+		self.edges_pointer += 1
+		self.most_edges.append(self.already_colored[self.colored_pointer])
+
+		self.already_colored.pop(self.colored_pointer)
+		self.colored_pointer -= 1
 
 	def create_floor(self):
 		# Create all the rooms
@@ -174,6 +200,7 @@ class ConstraintOptimalHeatMiser:
 
 def main():
 	heatMiser = ConstraintOptimalHeatMiser()
+	heatMiser.floor.create_edges_stack()
 
 if __name__ == '__main__':
 	main()
