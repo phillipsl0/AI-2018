@@ -76,7 +76,7 @@ class Floor:
 		wh1.set_neighbors([of1, wh2, of2, of4, of5])
 		of1.set_neighbors([wh1, of6])
 		wh2.set_neighbors([wh1, wh3, of3, of2])
-		of2.set_neighbors([wh1, wh2, of4, of4])
+		of2.set_neighbors([wh1, wh2, of3, of4])
 		of3.set_neighbors([of2, wh2, wh3, of4])
 		of4.set_neighbors([wh1, of2, of3, wh4, of5])
 		of5.set_neighbors([wh1, of4, wh4, of6])
@@ -115,9 +115,18 @@ class Floor:
 	def attempt_room_action(self, room, action):
 		neighbors = room.get_neighbors()
 		
+		print("In room " + room.get_name() + " - neighbors:")
+		print(", ".join([neighbor.get_name() for neighbor in neighbors]))
+		print("Current action: " + action)
 		for neighbor in neighbors:
+			try:
+				print("Checking neighbor: " + neighbor.get_name() + " - action: " + neighbor.get_action())
+			except:
+				print("Checking neighbor: " + neighbor.get_name() + " - action: None")
+
 			# Can't do action - neighbor has similar action
-			if self.rooms[room.get_name()]["Action"] == action:
+			if (self.rooms[neighbor.get_name()]["Action"] == action):
+				print("Actions match!!")
 				return False
 
 		return True
@@ -140,10 +149,13 @@ class Floor:
 		return None
 
 	# Prints actions of floor
-	def get_floor_mapping(self):
+	def print_floor_mapping(self):
 		for roomName in self.rooms:
 			roomAction = self.rooms[roomName]["Room"].get_action()
-			print("Room " + roomName + ": " + roomAction)
+			if roomAction is None:
+				print("Room " + roomName + ": None")
+			else:
+				print("Room " + roomName + ": " + roomAction)
 
 
 # Heat Miser class
@@ -180,9 +192,12 @@ class ConstraintOptimalHeatMiser:
 		fails = 0 # keeps track of how often heat miser has to backtrack
 
 		while not self.floor.check_floor_actions():
+			print("Room stack: ")
+			print([neighbor.get_name() for neighbor in currRoom.get_neighbors()])
+
 			action = self.get_room_action(currRoom) # adds action to room history
 
-			# back track
+			# no actions available, backtrack
 			if action is None:
 				fails += 1
 				self.clear_room_history(currRoom)
@@ -197,14 +212,20 @@ class ConstraintOptimalHeatMiser:
 					room_stack.append(currRoom)
 					currRoom = self.floor.next_room(currRoom) # get next room with no action
 				
-				# No valid neighbors - backtrack
-				if (currRoom is None) and not self.floor.check_floor_actions():
-					fails += 1
-					currRoom = room_stack.pop() # retrieve last room
-					self.clear_room_history(currRoom)
-					currRoom = room_stack.pop() # backtrack
+				# Test if pass
+				if self.floor.check_floor_actions():
+					break
 
-		print(self.floor.get_floor_mapping())
+				# No valid neighbors - backtrack
+				if (currRoom is None):
+					currRoom = room_stack.pop() # retrieve last room
+
+			print("***")
+			self.floor.print_floor_mapping()
+			print("\n")
+
+		print("Final Mapping")
+		self.floor.print_floor_mapping()
 
 
 def main():
