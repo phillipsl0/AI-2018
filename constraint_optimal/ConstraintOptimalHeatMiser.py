@@ -154,6 +154,10 @@ class Floor:
 
 		return None
 
+	def clear_room_action(self, room):
+		self.rooms[room.get_name()]["Action"] = None
+		room.set_action(None)
+
 	# Prints actions of floor
 	def print_floor_mapping(self):
 		for roomName in self.rooms:
@@ -191,6 +195,8 @@ class ConstraintOptimalHeatMiser:
 	# Clears current actions done on a room
 	def clear_room_history(self, room):
 		self.actionHistory[room.get_name()] = []
+		self.floor.clear_room_action(room)
+		# REMOVE ACTION FROM FLOOR PLAN TOO!!!
 
 	def brute_force(self):
 		currRoom = self.floor.get_initial_room()
@@ -200,7 +206,7 @@ class ConstraintOptimalHeatMiser:
 
 		while not self.floor.check_floor_actions():
 			print("Room stack: ")
-			print([neighbor.get_name() for neighbor in currRoom.get_neighbors()])
+			print([room.get_name() for room in room_stack])
 
 			action = self.get_room_action(currRoom) # adds action to room history
 
