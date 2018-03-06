@@ -91,33 +91,24 @@ class Floor:
 		wh4.set_neighbors([of4, wh3, of6, of5])
 
 		# Add to floor
-		self.rooms["Warehouse 1"]["Room"] = wh1
-		self.rooms["Warehouse 2"]["Room"] = wh2
-		self.rooms["Warehouse 3"]["Room"] = wh3
-		self.rooms["Warehouse 4"]["Room"] = wh4
-		self.rooms["Office 1"]["Room"] = of1
-		self.rooms["Office 2"]["Room"] = of2
-		self.rooms["Office 3"]["Room"] = of3
-		self.rooms["Office 4"]["Room"] = of4
-		self.rooms["Office 5"]["Room"] = of5
-		self.rooms["Office 6"]["Room"] = of6
-
-		self.rooms["Warehouse 1"]["Action"] = None
-		self.rooms["Warehouse 2"]["Action"] = None
-		self.rooms["Warehouse 3"]["Action"] = None
-		self.rooms["Warehouse 4"]["Action"] = None
-		self.rooms["Office 1"]["Action"] = None
-		self.rooms["Office 2"]["Action"] = None
-		self.rooms["Office 3"]["Action"] = None
-		self.rooms["Office 4"]["Action"] = None
-		self.rooms["Office 5"]["Action"] = None
-		self.rooms["Office 6"]["Action"] = None
+		self.rooms["Warehouse 1"] =  {"Room": wh1, "Action": None}
+		self.rooms["Warehouse 2"] =  {"Room": wh2, "Action": None}
+		self.rooms["Warehouse 3"] =  {"Room": wh3, "Action": None}
+		self.rooms["Warehouse 4"] =  {"Room": wh4, "Action": None}
+		self.rooms["Office 1"] = {"Room": of1, "Action": None}
+		self.rooms["Office 2"] = {"Room": of2, "Action": None}
+		self.rooms["Office 3"] = {"Room": of3, "Action": None}
+		self.rooms["Office 4"] = {"Room": of4, "Action": None}
+		self.rooms["Office 5"] = {"Room": of5, "Action": None}
+		self.rooms["Office 6"] = {"Room": of6, "Action": None}
 
 	# Returns starting room
 	def get_initial_room(self):
-		keys = self.rooms.keys()
+		keys = list(self.rooms.keys())
 		size = len(keys)
-		return self.rooms[keys[randrange(size)]]
+		rand_room_index = randrange(len(keys))
+		rand_room_name = keys[rand_room_index]
+		return self.rooms[rand_room_name]["Room"]
 
 	# Checks if all rooms have actions
 	def check_floor_actions(self):
@@ -143,6 +134,22 @@ class Floor:
 
 		self.rooms[roomName]["Action"] = action
 		room.set_action(action)
+
+	# Get adjacent room with no action, else None
+	def next_room(self, room):
+		neighbors = room.get_neighbors()
+
+		for neighbor in neighbors:
+			if neighbor.get_action() == None:
+				return neighbor
+
+		return None
+
+	# Prints actions of floor
+	def get_floor_mapping(self):
+		for roomName in self.rooms:
+			roomAction = self.rooms[roomName]["Room"].get_action()
+			print("Room " + roomName + ": " + roomAction)
 
 
 # Heat Miser class
@@ -173,7 +180,6 @@ class ConstraintOptimalHeatMiser:
 	def clear_room_history(self, room):
 		self.actionHistory[room.get_name()] = []
 
-
 	def brute_force(self):
 		currRoom = self.floor.get_initial_room()
 		room_stack = []
@@ -184,7 +190,7 @@ class ConstraintOptimalHeatMiser:
 
 			# back track
 			if action is None:
-				fail += 1
+				fails += 1
 				self.clear_room_history(currRoom)
 				currRoom = room_stack.pop()
 			else:
@@ -195,10 +201,18 @@ class ConstraintOptimalHeatMiser:
 				if success:
 					self.floor.set_room_action(currRoom, action)
 					room_stack.append(currRoom)
-					currRoom = self.floor.next_room()
-				else:
+					currRoom = self.floor.next_room(currRoom) # get next room with no action
+				
+				# No valid neighbors - backtrack
+				if (currRoom is None) and not self.floor.check_floor_actions():
+					fails += 1
+					currRoom = room_stack.pop() # retrieve last room
+					self.clear_room_history(currRoom)
+					currRoom = room_stack.pop() # backtrack
 
-	def most_constraining(self):
+		print(self.floor.get_floor_mapping())
+   
+def most_constraining(self):
 		currRoom = self.floor.pop_edges()
 		fails = 0
 
@@ -214,14 +228,14 @@ class ConstraintOptimalHeatMiser:
 
 			else:
 				success = self.floor.attempt_room_action(currRoom, action)
-
 				if success:
 					self.floor.set_room_action(currRoom, action)
 					self.floor.push_colored(currRoom)
 
 def main():
 	heatMiser = ConstraintOptimalHeatMiser()
-	heatMiser.floor.create_edges_stack()
+	heatMiser.brute_force()
+	# heatMiser.floor.create_edges_stack()
 
 if __name__ == '__main__':
 	main()
