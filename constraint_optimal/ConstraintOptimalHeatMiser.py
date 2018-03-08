@@ -184,6 +184,35 @@ class ConstraintOptimalHeatMiser:
 	def __init__(self):
 		self.floor = Floor()
 		self.actionHistory = {}
+		self.all_combinations = []
+
+	def add_new_combination(self, new_dict):
+		if len(self.all_combinations) == 0:
+			self.all_combinations.append(new_dict)
+
+		unique = True
+
+		for dict in self.all_combinations:
+			matching = 0
+			old_keys = dict.keys()
+
+			for key in old_keys:
+				if (dict.get(key) == new_dict.get(key)):
+					matching += 1
+
+			if matching == len(old_keys):
+				unique = False
+
+		if unique:
+			self.all_combinations.append(new_dict)
+
+	def create_dictionary(self):
+		dict = {}
+
+		for room in self.floor.get_all_rooms():
+			dict[room.get_name()] = room.get_action()
+
+		return dict
 
 	def get_room_action(self, room):
 		actions = ["Temp", "Humidity", "Pass"]
@@ -218,7 +247,6 @@ class ConstraintOptimalHeatMiser:
 
 			for room in rooms:
 				self.clear_room_history(room)
-
 
 	# Conducts a brute force coloring of the rooms
 	# Returns if coloring was successful
@@ -284,11 +312,12 @@ class ConstraintOptimalHeatMiser:
 		if not noSolution or (success > 0):
 			print("Final Mapping")
 			self.floor.print_floor_mapping()
+			new_dict = self.create_dictionary()
+			self.add_new_combination(new_dict)
 			return True
 
 		return False
-
-   
+  
 def most_constraining(self):
 		currRoom = self.floor.pop_edges()
 		fails = 0
