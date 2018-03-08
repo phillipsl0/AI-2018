@@ -208,7 +208,6 @@ class ConstraintOptimalHeatMiser:
 		self.actionHistory[room.get_name()] = []
 		self.floor.clear_room_action(room)
 
-
 	# Conducts brute force on all the rooms
 	def brute_force_all_rooms(self):
 		rooms = self.floor.get_all_rooms()
@@ -223,14 +222,17 @@ class ConstraintOptimalHeatMiser:
 
 	# Conducts a brute force coloring of the rooms
 	# Returns if coloring was successful
-	def brute_force(self, currRoom):
-		if currRoom is None:
+	def brute_force(self, startRoom):
+		if startRoom is None:
 			currRoom = self.floor.get_initial_room_random()
+		else:
+			currRoom = startRoom
 		
 		roomStack = []
 		backtracks = 0 # keeps track of how often heat miser has to backtrack
 		noSolution = False
 		fails = 0
+		successes = 0
 
 		while not self.floor.check_floor_actions():
 
@@ -260,9 +262,16 @@ class ConstraintOptimalHeatMiser:
 					roomStack.append(currRoom)
 					currRoom = self.floor.next_room(currRoom) # get next room with no action
 				
-				# Test if pass
+				# Test if pass - if so pop room to artificially 
 				if self.floor.check_floor_actions():
-					break
+					successes += 1
+
+					print("\nFinal Mapping")
+					self.floor.print_floor_mapping()
+
+					# Reset room color to force it try a new combination
+					currRoom = roomStack.pop()
+					self.floor.clear_room_action(currRoom)
 
 				# No valid neighbors - backtrack
 				if (currRoom is None):
@@ -272,7 +281,7 @@ class ConstraintOptimalHeatMiser:
 			# self.floor.print_floor_mapping()
 			# print("\n")
 
-		if not noSolution:
+		if not noSolution or (success > 0):
 			print("Final Mapping")
 			self.floor.print_floor_mapping()
 			return True
