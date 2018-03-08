@@ -248,10 +248,6 @@ class ConstraintOptimalHeatMiser:
 			for room in rooms:
 				self.clear_room_history(room)
 
-			for room in rooms:
-				self.clear_room_history(room)
-
-
 	# Conducts a brute force coloring of the rooms
 	# Returns if coloring was successful
 	def brute_force(self, startRoom):
@@ -318,11 +314,10 @@ class ConstraintOptimalHeatMiser:
 			self.floor.print_floor_mapping()
 			new_dict = self.create_dictionary()
 			self.add_new_combination(new_dict)
-			print(self.all_combinations)
 			return True
 
 		return False
-   
+  
 def most_constraining(self):
 		currRoom = self.floor.pop_edges()
 		fails = 0
