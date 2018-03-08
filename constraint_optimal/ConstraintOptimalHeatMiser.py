@@ -41,7 +41,7 @@ class Floor:
 		edges = {}
 
 		for room in self.rooms:
-			edges[room] = len(self.rooms[room].get_neighbors())
+			edges[room] = len(self.rooms[room]["Room"].get_neighbors())
 
 		self.most_edges = sorted(edges, key=edges.__getitem__)
 
@@ -185,6 +185,7 @@ class ConstraintOptimalHeatMiser:
 		self.floor = Floor()
 		self.actionHistory = {}
 		self.all_combinations = []
+		self.failures = 0
 
 	def add_new_combination(self, new_dict):
 		if len(self.all_combinations) == 0:
@@ -248,9 +249,19 @@ class ConstraintOptimalHeatMiser:
 			for room in rooms:
 				self.clear_room_history(room)
 
+	def reset_failures(self):
+		self.failures = 0
+
+	def add_failures(self, fails):
+		self.failures += fails
+
+	def get_failures(self):
+		return self.failures
+
 	# Conducts a brute force coloring of the rooms
 	# Returns if coloring was successful
 	def brute_force(self, startRoom):
+		self.reset_failures()
 		if startRoom is None:
 			currRoom = self.floor.get_initial_room_random()
 		else:
@@ -303,13 +314,16 @@ class ConstraintOptimalHeatMiser:
 
 				# No valid neighbors - backtrack
 				if (currRoom is None):
+					fails += 1
 					currRoom = roomStack.pop() # retrieve last room
 
 			# print("***")
 			# self.floor.print_floor_mapping()
 			# print("\n")
 
-		if not noSolution or (success > 0):
+		self.add_failures(fails)
+
+		if not noSolution or (successes > 0):
 			print("Final Mapping")
 			self.floor.print_floor_mapping()
 			new_dict = self.create_dictionary()
@@ -318,30 +332,91 @@ class ConstraintOptimalHeatMiser:
 
 		return False
   
-def most_constraining(self):
+	def most_constraining(self):
+		self.reset_failures()
 		currRoom = self.floor.pop_edges()
+		currRoomObject = self.floor.rooms[currRoom]["Room"]
+
+		backtracks = 0  # keeps track of how often heat miser has to backtrack
+		noSolution = False
 		fails = 0
+		successes = 0
 
 		while not self.floor.check_floor_actions():
-			action = self.get_room_action(currRoom)
+			action = self.get_room_action(currRoomObject)  # adds action to room history
 
+			# no actions available, backtrack
 			if action is None:
-				fails += 1
-				self.clear_room_history(currRoom)
-				self.floor.push_edges(currRoom)
+				backtracks += 1
+				self.clear_room_history(currRoomObject)
 
-				currRoom = self.floor.pop_colored()
+				try:
+					currRoom = self.floor.already_colored.pop()
+					currRoomObject = self.floor.rooms[currRoom]["Room"]
 
+				except:
+					fails += 1
+					print("~~~ No solution was found! ~~~ \n")
+					noSolution = True
+					break
 			else:
-				success = self.floor.attempt_room_action(currRoom, action)
+				# Check whether action can be done on room
+				success = self.floor.attempt_room_action(currRoomObject, action)
+
+				# Action valid - set action and add to stack
 				if success:
-					self.floor.set_room_action(currRoom, action)
-					self.floor.push_colored(currRoom)
+					self.floor.set_room_action(currRoomObject, action)
+					#coloring = self.floor.most_edges.pop()
+					self.floor.already_colored.append(currRoom)
+					currRoom = self.floor.next_room(currRoomObject)  # get next room with no action
+
+					if currRoom != None:
+						currRoom = currRoom.get_name()
+						currRoomObject = self.floor.rooms[currRoom]["Room"]
+
+				# Test if pass - if so pop room to artificially
+				if self.floor.check_floor_actions():
+					successes += 1
+
+					# print("\nFinal Mapping")
+					# self.floor.print_floor_mapping()
+
+					# # Reset room color to force it try a new combination
+					# currRoom = self.floor.already_colored.pop()
+					# currRoomObject = self.floor.rooms[currRoom]["Room"]
+					# self.floor.clear_room_action(currRoomObject)
+
+				# No valid neighbors - backtrack
+				if (currRoom is None):
+					fails += 1
+					currRoom = self.floor.already_colored.pop()  # retrieve last room
+					currRoomObject = self.floor.rooms[currRoom]["Room"]
+
+				# print("***")
+				# self.floor.print_floor_mapping()
+				# print("\n")
+
+		self.add_failures(fails)
+		if not noSolution or (successes > 0):
+			print("Final Mapping")
+			self.floor.print_floor_mapping()
+			new_dict = self.create_dictionary()
+			self.add_new_combination(new_dict)
+			return True
+
+		return False
 
 def main():
 	heatMiser = ConstraintOptimalHeatMiser()
 	heatMiser.brute_force_all_rooms()
-	# heatMiser.floor.create_edges_stack()
+	print("Total failures for brute force: ", heatMiser.get_failures())
+
+	for room in heatMiser.floor.get_all_rooms():
+		heatMiser.floor.clear_room_action(room)
+
+	heatMiser.floor.create_edges_stack()
+	heatMiser.most_constraining()
+	print("Total failures for optimized: ", heatMiser.get_failures())
 
 if __name__ == '__main__':
 	main()
