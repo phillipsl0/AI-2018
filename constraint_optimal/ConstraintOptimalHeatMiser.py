@@ -208,15 +208,21 @@ class ConstraintOptimalHeatMiser:
 		self.actionHistory[room.get_name()] = []
 		self.floor.clear_room_action(room)
 
+
+	# Conducts brute force on all the rooms
 	def brute_force_all_rooms(self):
 		rooms = self.floor.get_all_rooms()
 		
 		for room in rooms:
 			print("\n*** \nStarting in room: " + room.get_name())
-			self.brute_force(room)
+			success = self.brute_force(room)
+
+			for room in rooms:
+				self.clear_room_history(room)
 
 
 	# Conducts a brute force coloring of the rooms
+	# Returns if coloring was successful
 	def brute_force(self, currRoom):
 		if currRoom is None:
 			currRoom = self.floor.get_initial_room_random()
@@ -269,6 +275,9 @@ class ConstraintOptimalHeatMiser:
 		if not noSolution:
 			print("Final Mapping")
 			self.floor.print_floor_mapping()
+			return True
+
+		return False
 
    
 def most_constraining(self):
