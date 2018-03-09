@@ -39,9 +39,16 @@ class Floor:
 
 	def create_edges_stack(self):
 		edges = {}
+		self.edges_pointer = len(self.rooms) - 1
 
 		for room in self.rooms:
+			# print("room: ", room)
+			# print("neighbors: ")
+
+			# for neighbor in self.rooms[room]["Room"].get_neighbors():
+			# 	print(neighbor.get_name())
 			edges[room] = len(self.rooms[room]["Room"].get_neighbors())
+			# print("")
 
 		self.most_edges = sorted(edges, key=edges.__getitem__)
 
@@ -54,6 +61,10 @@ class Floor:
 	def push_edges(self, room):
 		self.most_edges.append(room)
 		self.edges_pointer += 1
+
+	def reset_colored(self):
+		self.already_colored = []
+		self.colored_pointer = 0
 
 	def pop_colored(self):
 		room = self.already_colored.pop(self.colored_pointer)
@@ -106,7 +117,7 @@ class Floor:
 	def get_initial_room_random(self):
 		keys = list(self.rooms.keys())
 		size = len(keys)
-		rand_room_index = randrange(len(keys))
+		rand_room_index = randrange(size)
 		rand_room_name = keys[rand_room_index]
 		return self.rooms[rand_room_name]["Room"]
 
@@ -186,6 +197,13 @@ class ConstraintOptimalHeatMiser:
 		self.actionHistory = {}
 		self.all_combinations = []
 		self.failures = 0
+		self.already_colored = []
+
+	def get_colored(self):
+		return self.already_colored
+
+	def add_colored(self, room):
+		self.already_colored.append(room)
 
 	def add_new_combination(self, new_dict):
 		if len(self.all_combinations) == 0:
@@ -230,31 +248,39 @@ class ConstraintOptimalHeatMiser:
 
 		if roomName not in self.actionHistory:
 			self.actionHistory[roomName] = []
+
 		history = self.actionHistory[roomName]
 
-		# Get first action not used
-		for action in actions:
-			if action not in history:
-				# add action to heat miser's room history
-				history.append(action)
-				self.actionHistory[roomName] = history
+		action_index = randrange(0,3)
 
-				return action
-		return None
+		# Get first action not used
+
+		if "Temp" in history and "Humidity" in history and "Pass" in history:
+			return None
+
+		while actions[action_index] in history:
+			action_index = randrange(0,3)
+
+		# add action to heat miser's room history
+		history.append(actions[action_index])
+		self.actionHistory[roomName] = history
+
+		return actions[action_index]
 
 	# Clears current actions done on a room
 	def clear_room_history(self, room):
 		self.actionHistory[room.get_name()] = []
 		self.floor.clear_room_action(room)
 
-	# Conducts brute force on all the rooms
-	def brute_force_all_rooms(self):
+	def get_all_combos(self):
 		rooms = self.floor.get_all_rooms()
 		all_combos = 0
-		
+
 		for room in rooms:
-			print("\n*** \nStarting in room: " + room.get_name())
-			success, combos = self.brute_force(room)
+			# print("\n*** \nStarting in room: " + room.get_name())
+			success, combos = self.preliminary_check(room)
+
+			#			success, combos = self.brute_force(room)
 
 			all_combos += combos
 
@@ -262,7 +288,8 @@ class ConstraintOptimalHeatMiser:
 			for room in rooms:
 				self.clear_room_history(room)
 
-		print("Total possible combinations: " + str(all_combos))
+		print("Total combos: ", all_combos)
+		print("Total combinations: ", len(self.all_combinations))
 
 	def reset_failures(self):
 		self.failures = 0
@@ -273,17 +300,15 @@ class ConstraintOptimalHeatMiser:
 	def get_failures(self):
 		return self.failures
 
-	# Conducts a brute force coloring of the rooms
-	# Returns if coloring was successful
-	def brute_force(self, startRoom):
+	def preliminary_check(self, startRoom):
 		self.reset_failures()
 		if startRoom is None:
 			currRoom = self.floor.get_initial_room_random()
 		else:
 			currRoom = startRoom
-		
+
 		roomStack = []
-		backtracks = 0 # keeps track of how often heat miser has to backtrack
+		backtracks = 0  # keeps track of how often heat miser has to backtrack
 		noSolution = False
 		fails = 0
 		successes = 0
@@ -293,16 +318,133 @@ class ConstraintOptimalHeatMiser:
 			# print("Room stack: ")
 			# print([room.get_name() for room in roomStack])
 
-			action = self.get_room_action(currRoom) # adds action to room history
+			action = self.get_room_action(currRoom)  # adds action to room history
 
 			# no actions available, backtrack
 			if action is None:
-				backtracks += 1
+				fails += 1
 				self.clear_room_history(currRoom)
 				try:
 					currRoom = roomStack.pop()
 				except:
+					# fails += 1
+					print("~~~ No solution was found! ~~~ \n")
+					noSolution = True
+					break
+			else:
+				# Check whether action can be done on room
+				success = self.floor.attempt_room_action(currRoom, action)
+
+				if success:
+					self.floor.set_room_action(currRoom, action)
+					roomStack.append(currRoom)
+
+					# Add all neighbors to the stack
+					# currRoom = self.floor.next_room(currRoom) # get next room with no action
+
+					neighbors = currRoom.get_neighbors()
+					for neighbor in neighbors:
+						if neighbor.get_action() == None:
+							roomStack.append(neighbor)
+					currRoom = roomStack.pop() # get next room adjacent to current with no action
+
+				# Test if pass - if so pop room to artificially
+				if self.floor.check_floor_actions():
+					successes += 1
+
+					# print("\nFinal Mapping")
+					# self.floor.print_floor_mapping()
+					new_dict = self.create_dictionary()
+					self.add_new_combination(new_dict)
+
+					# Reset room color to force it try a new combination
+					currRoom = roomStack.pop()
+					self.floor.clear_room_action(currRoom)
+
+				# No valid neighbors - backtrack
+				if (currRoom is None):
 					fails += 1
+					currRoom = roomStack.pop()  # retrieve last room
+
+				# print("***")
+				# self.floor.print_floor_mapping()
+				# print("\n")
+
+		new_dict = self.create_dictionary()
+
+		if not noSolution or not(None in new_dict.values()):
+			# print("Final Mapping")
+			# self.floor.print_floor_mapping()
+			# new_dict = self.create_dictionary()
+			self.add_new_combination(new_dict)
+			return True, successes
+
+		return False, successes
+
+	def add_to_temperatures(self, room, changed):
+		if room.get_action() == "Temp" and not(room in changed):
+			changed.append(room)
+
+		return changed
+
+	def add_to_humidities(self, room, changed):
+		if room.get_action() == "Humidity" and not(room in changed):
+			changed.append(room)
+
+		return changed
+
+	# Conducts brute force on all the rooms
+	def brute_force_all_rooms(self):
+		rooms = self.floor.get_all_rooms()
+		changed_temps = []
+		changed_humidities = []
+		iterations = 0
+
+		while len(changed_temps) < 10 and len(changed_humidities) < 10:
+			success = self.brute_force(None)
+
+			for room in rooms:
+				changed_temps = self.add_to_temperatures(room, changed_temps)
+				changed_humidities = self.add_to_humidities(room, changed_humidities)
+
+			# Resets floor's history
+			for room in rooms:
+				self.clear_room_history(room)
+
+			iterations += 1
+
+		print("Total brute force iterations: ", iterations)
+
+	# Conducts a brute force coloring of the rooms
+	# Returns if coloring was successful
+	def brute_force(self, startRoom):
+		self.reset_failures()
+		if startRoom is None:
+			currRoom = self.floor.get_initial_room_random()
+		else:
+			currRoom = startRoom
+
+		print("starting room: ", currRoom.get_name())
+		roomStack = []
+		backtracks = 0 # keeps track of how often heat miser has to backtrack
+		noSolution = False
+		fails = 0
+		successes = 0
+
+		while not self.floor.check_floor_actions():
+			# print("Room stack: ")
+			# print([room.get_name() for room in roomStack])
+
+			action = self.get_room_action(currRoom) # adds action to room history
+
+			# no actions available, backtrack
+			if action is None:
+				fails += 1
+				self.clear_room_history(currRoom)
+				try:
+					currRoom = roomStack.pop()
+				except:
+					# fails += 1
 					# print("\n~~~ No solution was found! ~~~ \n")
 					noSolution = True
 					break
@@ -351,14 +493,45 @@ class ConstraintOptimalHeatMiser:
 		if not noSolution or (successes > 0):
 			# print("Final Mapping")
 			# self.floor.print_floor_mapping()
-			# new_dict = self.create_dictionary()
-			# self.add_new_combination(new_dict)
+			print("")
 			return True, successes
 
-		return False, successes
+		return False
+
+	def change_all_constrained(self):
+		rooms = self.floor.get_all_rooms()
+		changed_temps = []
+		changed_humidities = []
+		iterations = 0
+
+		while len(changed_temps) < 10 and len(changed_humidities) < 10:
+			self.floor.create_edges_stack()
+			self.floor.reset_colored()
+			self.most_constraining()
+
+			for room in rooms:
+				changed_temps = self.add_to_temperatures(room, changed_temps)
+				changed_humidities = self.add_to_humidities(room, changed_humidities)
+
+			# Resets floor's history
+			for room in rooms:
+				self.clear_room_history(room)
+
+			iterations += 1
+
+		print("Total optimized iterations: ", iterations)
+		# while len(self.already_colored) < 10:
+        #
+		# 	print(self.already_colored)
+			# new_dict = self.create_dictionary()
+			# self.add_new_combination(new_dict)
+			#return True, successes
+
+		#return False, successes
   
 	def most_constraining(self):
 		self.reset_failures()
+
 		currRoom = self.floor.pop_edges()
 		currRoomObject = self.floor.rooms[currRoom]["Room"]
 
@@ -372,7 +545,7 @@ class ConstraintOptimalHeatMiser:
 
 			# no actions available, backtrack
 			if action is None:
-				backtracks += 1
+				fails += 1
 				self.clear_room_history(currRoomObject)
 
 				try:
@@ -380,7 +553,7 @@ class ConstraintOptimalHeatMiser:
 					currRoomObject = self.floor.rooms[currRoom]["Room"]
 
 				except:
-					fails += 1
+					# fails += 1
 					print("~~~ No solution was found! ~~~ \n")
 					noSolution = True
 					break
@@ -393,11 +566,14 @@ class ConstraintOptimalHeatMiser:
 					self.floor.set_room_action(currRoomObject, action)
 					#coloring = self.floor.most_edges.pop()
 					self.floor.already_colored.append(currRoom)
-					currRoom = self.floor.next_room(currRoomObject)  # get next room with no action
 
-					if currRoom != None:
-						currRoom = currRoom.get_name()
-						currRoomObject = self.floor.rooms[currRoom]["Room"]
+					if len(self.floor.most_edges) != 0:
+						currRoom = self.floor.most_edges.pop()
+						# currRoom = self.floor.next_room(currRoomObject)  # get next room with no action
+
+						if currRoom != None:
+							# currRoom = currRoom.get_name()
+							currRoomObject = self.floor.rooms[currRoom]["Room"]
 
 				# Test if pass - if so pop room to artificially
 				if self.floor.check_floor_actions():
@@ -422,7 +598,12 @@ class ConstraintOptimalHeatMiser:
 				# print("\n")
 
 		self.add_failures(fails)
+
 		if not noSolution or (successes > 0):
+				# if room.get_action() != "Pass" and not (room.get_name() in self.get_colored()):
+				# 	print("add!")
+				# 	self.add_colored(room.get_name())
+
 			print("Final Mapping")
 			self.floor.print_floor_mapping()
 			new_dict = self.create_dictionary()
@@ -433,15 +614,17 @@ class ConstraintOptimalHeatMiser:
 
 def main():
 	heatMiser = ConstraintOptimalHeatMiser()
+	# heatMiser.get_all_combos()
+
 	heatMiser.brute_force_all_rooms()
 	print("Total failures for brute force: ", heatMiser.get_failures())
 
 	for room in heatMiser.floor.get_all_rooms():
 		heatMiser.floor.clear_room_action(room)
 
-	heatMiser.floor.create_edges_stack()
-	heatMiser.most_constraining()
-	print("Total failures for optimized: ", heatMiser.get_failures())
+	# heatMiser.floor.create_edges_stack()
+	#heatMiser.change_all_constrained()
+	#print("Total failures for optimized: ", heatMiser.get_failures())
 
 if __name__ == '__main__':
 	main()
