@@ -440,7 +440,7 @@ class ConstraintOptimalHeatMiser:
 		if not noSolution or (successes > 0):
 			print("Final Mapping")
 			self.floor.print_floor_mapping()
-      return True
+			return True
 
 		return False
 
