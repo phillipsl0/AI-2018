@@ -258,7 +258,7 @@ class ConstraintOptimalHeatMiser:
 		all_combos = 0
 
 		for room in rooms:
-			print("\n*** \nStarting in room: " + room.get_name())
+			# print("\n*** \nStarting in room: " + room.get_name())
 			success, combos = self.preliminary_check(room)
 
 			all_combos += combos
@@ -267,8 +267,9 @@ class ConstraintOptimalHeatMiser:
 			for room in rooms:
 				self.clear_room_history(room)
 
-		print("Total combos: ", all_combos)
-		print("Total combinations: ", len(self.all_combinations))
+		# print("Total combos: ", all_combos)
+        #
+		# print("Total combinations: ", len(self.all_combinations))
 
 	def reset_failures(self):
 		self.failures = 0
@@ -382,6 +383,7 @@ class ConstraintOptimalHeatMiser:
 			iterations += 1
 
 		print("Total brute force iterations: ", iterations)
+		return iterations
 
 
 	# Conducts a brute force coloring of the rooms
@@ -480,6 +482,7 @@ class ConstraintOptimalHeatMiser:
 			iterations += 1
 
 		print("Total optimized iterations: ", iterations)
+		return iterations
   
 	def most_constraining(self, previous):
 		currRoom = self.floor.pop_edges()
@@ -539,23 +542,55 @@ class ConstraintOptimalHeatMiser:
 		return False
 
 def main():
-	print("------- FINDING ALL COMBOS -------")
 	heatMiser = ConstraintOptimalHeatMiser()
-	heatMiser.get_all_combos()
-	print("")
+	print("------- FINDING ALL COMBOS -------")
+	for i in range(2):
+		heatMiser.get_all_combos()
 
-	print("------- STARTING BRUTE FORCE -------")
-	heatMiser.brute_force_all_rooms()
-	print("Total failures for brute force: ", heatMiser.get_failures())
+	print("Total possible combinations: ", pow(3, 10))
+	print("Total valid combinations found:", len(heatMiser.all_combinations))
 	print("")
 
 	for room in heatMiser.floor.get_all_rooms():
 		heatMiser.floor.clear_room_action(room)
 
+	brute_iterations = 0
+	brute_failures = 0
+	print("------- STARTING BRUTE FORCE -------")
+	for i in range(100):
+		print("BRUTE FORCE ROUND ", i+1)
+		iter = heatMiser.brute_force_all_rooms()
+		print("Total failures for brute force: ", heatMiser.get_failures())
+		brute_iterations += iter
+		brute_failures += heatMiser.failures
+		print("")
+
+	print("------- FINISHED BRUTE FORCE -------")
+	print("")
+
+	for room in heatMiser.floor.get_all_rooms():
+		heatMiser.floor.clear_room_action(room)
+
+	optimized_iterations = 0
+	optimized_failures = 0
 	print("------- STARTING OPTIMIZED -------")
-	heatMiser.floor.create_edges_stack()
-	heatMiser.change_all_constrained()
-	print("Total failures for optimized: ", heatMiser.get_failures())
+	for i in range(100):
+		print("OPTIMIZED ROUND ", i+1)
+		heatMiser.floor.create_edges_stack()
+		iter = heatMiser.change_all_constrained()
+		print("Total failures for optimized: ", heatMiser.get_failures())
+		optimized_iterations += iter
+		optimized_failures += heatMiser.failures
+		print("")
+
+	print("------- FINISHED OPTIMIZED -------")
+	print("")
+	print("COMPARISON")
+	print("Average brute force iterations: ", brute_iterations / 100)
+	print("Average brute force failures: ", brute_failures / 100)
+	print("")
+	print("Average optimized iterations: ", optimized_iterations/ 100)
+	print("Average optimized failures: ",optimized_failures/ 100)
 	print("")
 
 if __name__ == '__main__':
