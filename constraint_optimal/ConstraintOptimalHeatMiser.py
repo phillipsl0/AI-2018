@@ -190,30 +190,39 @@ class ConstraintOptimalHeatMiser:
 	def add_new_combination(self, new_dict):
 		if len(self.all_combinations) == 0:
 			self.all_combinations.append(new_dict)
+			return
 
 		unique = True
 
-		for dict in self.all_combinations:
+		for d in self.all_combinations:
 			matching = 0
-			old_keys = dict.keys()
+			old_keys = d.keys()
 
 			for key in old_keys:
-				if (dict.get(key) == new_dict.get(key)):
+				if (d.get(key) == new_dict.get(key)):
 					matching += 1
 
 			if matching == len(old_keys):
 				unique = False
 
 		if unique:
+			print("\nSuccessful Mapping")
+			for key in new_dict:
+				try:
+					print("Room " + key + ": " + new_dict.get(key))
+				except:
+					print("Room " + key + ": None")
+			# self.floor.print_floor_mapping()
+			
 			self.all_combinations.append(new_dict)
 
 	def create_dictionary(self):
-		dict = {}
+		d = {}
 
 		for room in self.floor.get_all_rooms():
-			dict[room.get_name()] = room.get_action()
+			d[room.get_name()] = room.get_action()
 
-		return dict
+		return d
 
 	def get_room_action(self, room):
 		actions = ["Temp", "Humidity", "Pass"]
@@ -294,7 +303,7 @@ class ConstraintOptimalHeatMiser:
 					currRoom = roomStack.pop()
 				except:
 					fails += 1
-					print("\n~~~ No solution was found! ~~~ \n")
+					# print("\n~~~ No solution was found! ~~~ \n")
 					noSolution = True
 					break
 			else:
@@ -319,8 +328,10 @@ class ConstraintOptimalHeatMiser:
 				if self.floor.check_floor_actions():
 					successes += 1
 
-					print("\nFinal Mapping")
-					self.floor.print_floor_mapping()
+					# print("\nFinal Mapping")
+					# self.floor.print_floor_mapping()
+					new_dict = self.create_dictionary()
+					self.add_new_combination(new_dict)
 
 					# Reset room color to force it try a new combination
 					currRoom = roomStack.pop()
@@ -338,10 +349,10 @@ class ConstraintOptimalHeatMiser:
 		self.add_failures(fails)
 
 		if not noSolution or (successes > 0):
-			print("Final Mapping")
-			self.floor.print_floor_mapping()
-			new_dict = self.create_dictionary()
-			self.add_new_combination(new_dict)
+			# print("Final Mapping")
+			# self.floor.print_floor_mapping()
+			# new_dict = self.create_dictionary()
+			# self.add_new_combination(new_dict)
 			return True, successes
 
 		return False, successes
