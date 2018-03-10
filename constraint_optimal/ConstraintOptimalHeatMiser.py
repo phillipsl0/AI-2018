@@ -560,8 +560,8 @@ def main():
 
 	brute_iterations = 0
 	brute_failures = 0
-	fb_iterations = open("brute_iterations_output.txt", "a")
-	fb_failures = open("brute_failures_output.txt", "a")
+	# fb_iterations = open("brute_iterations_output.txt", "a")
+	# fb_failures = open("brute_failures_output.txt", "a")
 
 	print("------- STARTING BRUTE FORCE -------")
 	for i in range(100):
@@ -569,24 +569,24 @@ def main():
 		iter = heatMiser.brute_force_all_rooms()
 		print("Total failures for brute force: ", heatMiser.get_failures())
 		brute_iterations += iter
-		fb_iterations.write(str(iter) + "\n")
+		# fb_iterations.write(str(iter) + "\n")
 
 		brute_failures += heatMiser.failures
-		fb_failures.write(str(heatMiser.failures) + "\n")
+		# fb_failures.write(str(heatMiser.failures) + "\n")
 		print("")
 
 	print("------- FINISHED BRUTE FORCE -------")
 	print("")
-	fb_iterations.close()
-	fb_failures.close()
+	# fb_iterations.close()
+	# fb_failures.close()
 
 	for room in heatMiser.floor.get_all_rooms():
 		heatMiser.floor.clear_room_action(room)
 
 	optimized_iterations = 0
 	optimized_failures = 0
-	fo_iterations = open("optimized_iterations_output.txt", "a")
-	fo_failures = open("optimized_failures_output.txt", "a")
+	# fo_iterations = open("optimized_iterations_output.txt", "a")
+	# fo_failures = open("optimized_failures_output.txt", "a")
 
 	print("------- STARTING OPTIMIZED -------")
 	for i in range(100):
@@ -595,16 +595,16 @@ def main():
 		iter = heatMiser.change_all_constrained()
 		print("Total failures for optimized: ", heatMiser.get_failures())
 		optimized_iterations += iter
-		fo_iterations.write(str(iter) + "\n")
+		# fo_iterations.write(str(iter) + "\n")
 
 		optimized_failures += heatMiser.failures
-		fo_failures.write(str(heatMiser.failures) + "\n")
+		# fo_failures.write(str(heatMiser.failures) + "\n")
 		print("")
 
 	print("------- FINISHED OPTIMIZED -------")
 	print("")
-	fo_iterations.close()
-	fo_failures.close()
+	# fo_iterations.close()
+	# fo_failures.close()
 
 	print("COMPARISON")
 	print("Average brute force iterations: ", brute_iterations / 100)
